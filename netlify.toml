@@ -1,0 +1,9 @@
+[build]
+  command = "npm install && npm run build -w site"
+  publish = "site/dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

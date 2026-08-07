@@ -1,0 +1,17 @@
+{
+  "name": "@tangentfeed/site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "python3 -m http.server 8080 --directory dist"
+  },
+  "dependencies": {
+    "@tangentfeed/core": "0.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.0",
+    "playwright": "^1.62.1"
+  }
+}

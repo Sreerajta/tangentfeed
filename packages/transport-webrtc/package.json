@@ -1,0 +1,39 @@
+{
+  "name": "@tangentfeed/transport-webrtc",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsup src/index.ts --format esm --dts --clean --external node-datachannel"
+  },
+  "dependencies": {
+    "@tangentfeed/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@tangentfeed/signaling-server": "0.1.0",
+    "@types/node": "^20.0.0",
+    "node-datachannel": "^0.26.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "tsup": "^8.5.0"
+  },
+  "description": "WebRTC transports for tangentfeed: signaling-server mesh and serverless QR pairing",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sreerajta/tangentfeed.git",
+    "directory": "packages/transport-webrtc"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

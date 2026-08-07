@@ -1,0 +1,21 @@
+{
+  "name": "@tangentfeed/adapter-sqlite",
+  "version": "0.1.0",
+  "description": "SQLite storage adapter for tangentfeed (better-sqlite3, node:sqlite, bun:sqlite)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md"],
+  "scripts": { "build": "tsup src/index.ts --format esm --dts --clean", "test": "vitest run" },
+  "dependencies": { "@tangentfeed/core": "0.1.0" },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "better-sqlite3": "^11.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

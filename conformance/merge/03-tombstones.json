@@ -1,0 +1,22 @@
+{
+  "name": "tombstone-hides-row",
+  "description": "§5: a winning row tombstone hides the row from materialized state even when cell writes carry HIGHER HLCs than the tombstone. Second row proves later un-deletion (tombstone overwritten with false at higher HLC) makes the row visible again with all surviving cells.",
+  "ops": [
+    { "id": "018f6e2a0001-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB1", "column": "text", "value": "delete me", "hlc": "018f6e2a0001-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a0002-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB1", "column": "-", "value": true, "hlc": "018f6e2a0002-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a0003-0000-bbbbbbbbbbbbbbbb", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB1", "column": "text", "value": "edited after delete, still hidden", "hlc": "018f6e2a0003-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
+
+    { "id": "018f6e2a0010-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB2", "column": "text", "value": "phoenix", "hlc": "018f6e2a0010-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a0011-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB2", "column": "-", "value": true, "hlc": "018f6e2a0011-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a0012-0000-bbbbbbbbbbbbbbbb", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB2", "column": "-", "value": false, "hlc": "018f6e2a0012-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" }
+  ],
+  "expectedState": {
+    "notes": {
+      "01HZX3NDEKTSV4RRFFQ69G5FB2": { "text": "phoenix" }
+    }
+  },
+  "expectedFrontier": {
+    "aaaaaaaaaaaaaaaa": "018f6e2a0011-0000-aaaaaaaaaaaaaaaa",
+    "bbbbbbbbbbbbbbbb": "018f6e2a0012-0000-bbbbbbbbbbbbbbbb"
+  }
+}

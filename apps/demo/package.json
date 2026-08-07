@@ -1,0 +1,17 @@
+{
+  "name": "@tangentfeed/demo",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "tangentfeed": "0.1.0",
+    "@tangentfeed/core": "0.1.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.0"
+  }
+}

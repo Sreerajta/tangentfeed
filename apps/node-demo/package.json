@@ -1,0 +1,16 @@
+{
+  "name": "@tangentfeed/node-demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": { "start": "node --experimental-strip-types cli.ts" },
+  "dependencies": {
+    "@tangentfeed/adapter-sqlite": "0.1.0",
+    "@tangentfeed/core": "0.1.0",
+    "@tangentfeed/transport-webrtc": "0.1.0",
+    "better-sqlite3": "^11.0.0",
+    "node-datachannel": "^0.26.0",
+    "tangentfeed": "0.1.0",
+    "ws": "^8.18.0"
+  }
+}

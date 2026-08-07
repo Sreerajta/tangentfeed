@@ -1,0 +1,25 @@
+{
+  "name": "encrypted-values-merge-blindly",
+  "description": "§7: encryption changes only the shape of `value`. A peer WITHOUT the key must still apply LWW correctly, keep ciphertext byte-exact, and honour plaintext tombstones. This vector is applied by a keyless engine, so expectedState contains the raw e1: envelopes: proof that merge never needs to decrypt.",
+  "ops": [
+    { "id": "018f6e2a0100-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD1", "column": "title", "value": "e1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAb2xkZXItY2lwaGVydGV4dA==", "hlc": "018f6e2a0100-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a0200-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD1", "column": "title", "value": "e1:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbmV3ZXItY2lwaGVydGV4dA==", "hlc": "018f6e2a0200-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
+    { "id": "018f6e2a0150-0000-cccccccccccccccc", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD1", "column": "done", "value": "e1:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCZG9uZS1jaXBoZXJ0ZXh0", "hlc": "018f6e2a0150-0000-cccccccccccccccc", "device": "cccccccccccccccc" },
+
+    { "id": "018f6e2a0300-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD2", "column": "title", "value": "e1:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDZGVsZXRlZC1yb3c=", "hlc": "018f6e2a0300-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a0301-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD2", "column": "-", "value": true, "hlc": "018f6e2a0301-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" }
+  ],
+  "expectedState": {
+    "tasks": {
+      "01HZX3NDEKTSV4RRFFQ69G5FD1": {
+        "title": "e1:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbmV3ZXItY2lwaGVydGV4dA==",
+        "done": "e1:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCZG9uZS1jaXBoZXJ0ZXh0"
+      }
+    }
+  },
+  "expectedFrontier": {
+    "aaaaaaaaaaaaaaaa": "018f6e2a0301-0000-aaaaaaaaaaaaaaaa",
+    "bbbbbbbbbbbbbbbb": "018f6e2a0200-0000-bbbbbbbbbbbbbbbb",
+    "cccccccccccccccc": "018f6e2a0150-0000-cccccccccccccccc"
+  }
+}

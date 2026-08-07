@@ -1,0 +1,19 @@
+{
+  "name": "same-cell-lww-and-tiebreak",
+  "description": "Same cell written concurrently: highest HLC wins. Includes an identical (millis,counter) pair where deviceId is the tiebreaker (§4.2, §5): device ffff... beats aaaa... at equal time.",
+  "ops": [
+    { "id": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa", "table": "settings", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "theme", "value": "light", "hlc": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018f6e2a9c40-0000-ffffffffffffffff", "table": "settings", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "theme", "value": "dark", "hlc": "018f6e2a9c40-0000-ffffffffffffffff", "device": "ffffffffffffffff" },
+    { "id": "018f6e2a9b00-0005-cccccccccccccccc", "table": "settings", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "theme", "value": "sepia", "hlc": "018f6e2a9b00-0005-cccccccccccccccc", "device": "cccccccccccccccc" }
+  ],
+  "expectedState": {
+    "settings": {
+      "01HZX3NDEKTSV4RRFFQ69G5FAA": { "theme": "dark" }
+    }
+  },
+  "expectedFrontier": {
+    "aaaaaaaaaaaaaaaa": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa",
+    "ffffffffffffffff": "018f6e2a9c40-0000-ffffffffffffffff",
+    "cccccccccccccccc": "018f6e2a9b00-0005-cccccccccccccccc"
+  }
+}

@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentation · TangentFeed</title>
+<meta name="theme-color" content="#0c1216">
+<meta name="description" content="Complete documentation for TangentFeed: quickstart, API reference, transports, encryption, storage adapters, compaction, and the wire protocol.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell masthead__inner">
+    <a class="wordmark" href="./index.html">
+      <span class="wordmark__dot"></span><span class="wordmark__name">tangent<b>feed</b></span>
+      <span class="wordmark__ver">v0.1</span>
+    </a>
+    <nav>
+      <a href="./index.html">Home</a>
+      <a href="./docs.html">Docs</a>
+      <a href="https://github.com/sreerajta/tangentfeed">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="shell docs">
+
+  <aside class="sidebar">
+    <input type="search" class="search" id="doc-search" placeholder="Filter sections" aria-label="Filter documentation sections">
+    <p class="no-results" id="no-results" hidden>Nothing matches that.</p>
+
+    <div class="nav-group">
+      <h5>Start</h5>
+      <ul>
+        <li><a href="#quickstart">Quickstart</a></li>
+        <li><a href="#mental-model">Mental model</a></li>
+        <li><a href="#install">Installation</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-group">
+      <h5>Guides</h5>
+      <ul>
+        <li><a href="#data">Reading and writing</a></li>
+        <li><a href="#transports">Transports</a></li>
+        <li><a href="#storage">Storage adapters</a></li>
+        <li><a href="#encryption">Encryption</a></li>
+        <li><a href="#compaction">Compaction</a></li>
+        <li><a href="#react">React</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-group">
+      <h5>Reference</h5>
+      <ul>
+        <li><a href="#api">API</a></li>
+        <li><a href="#packages">Packages</a></li>
+        <li><a href="#protocol">Protocol</a></li>
+        <li><a href="#conformance">Conformance</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-group">
+      <h5>Operating</h5>
+      <ul>
+        <li><a href="#deploy">Deployment</a></li>
+        <li><a href="#recipes">Recipes</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+        <li><a href="#status">Status and limits</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="doc-body">
+
+    <section id="quickstart">
+      <h2>Quickstart</h2>
+      <p class="doc-lede">
+        A local database that works offline and converges with your other devices when it can.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>install</span><button class="copy" data-copy="npm install tangentfeed">Copy</button></div>
+<pre>npm install tangentfeed</pre>
+      </div>
+
+      <div class="code">
+        <div class="code__head"><span>app.ts</span><button class="copy" data-copy-target="c-quick">Copy</button></div>
+<pre id="c-quick"><span class="tok-key">import</span> { openSpace, broadcast } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({
+  space: <span class="tok-str">"kitchen-42"</span>,
+  transports: [<span class="tok-fn">broadcast</span>()],
+});
+
+<span class="tok-key">const</span> id = <span class="tok-key">await</span> db.<span class="tok-fn">insert</span>(<span class="tok-str">"tasks"</span>, { title: <span class="tok-str">"Order rice bran oil"</span>, done: <span class="tok-key">false</span> });
+<span class="tok-key">await</span> db.<span class="tok-fn">update</span>(<span class="tok-str">"tasks"</span>, id, { done: <span class="tok-key">true</span> });
+
+db.<span class="tok-fn">subscribe</span>(<span class="tok-key">async</span> () =&gt; {
+  <span class="tok-fn">render</span>(<span class="tok-key">await</span> db.<span class="tok-fn">list</span>(<span class="tok-str">"tasks"</span>));
+});</pre>
+      </div>
+
+      <p>
+        Open that page in two tabs and they sync. Add a WebRTC transport and it syncs
+        across devices. Nothing else in your code changes.
+      </p>
+    </section>
+
+    <section id="mental-model">
+      <h2>Mental model</h2>
+      <p>
+        Five ideas cover almost everything. Reading them once will save you from
+        surprises later.
+      </p>
+
+      <h3>A space is the unit of replication</h3>
+      <p>
+        A space is a named set of tables. Peers only sync with peers in the same space.
+        One user's data, one space, is the usual mapping.
+      </p>
+
+      <h3>Every write is an operation</h3>
+      <p>
+        Writes append to a log rather than overwriting anything. The tables you read are a
+        cache materialized from that log, which is why a delete writes a tombstone
+        operation instead of removing rows.
+      </p>
+
+      <h3>The cell is the unit of conflict</h3>
+      <p>
+        Conflicts are resolved per <code>(table, row, column)</code>. Two devices editing
+        the title and the status of the same row concurrently both keep their edit. Two
+        devices editing the same field means the later stamp wins.
+      </p>
+
+      <h3>Clocks are logical, not wall clocks</h3>
+      <p>
+        Each operation carries a hybrid logical clock stamp. A device whose clock is an
+        hour slow still sorts its writes correctly relative to everything it has seen,
+        because receiving an operation advances the local clock past it.
+      </p>
+
+      <h3>Convergence does not depend on delivery</h3>
+      <p>
+        Merging is commutative, associative, and idempotent. Messages can arrive out of
+        order, twice, or much later, and every replica still reaches identical state. This
+        is why transports are allowed to be unreliable.
+      </p>
+
+      <div class="note">
+        <span class="note__label">Worth internalizing</span>
+        <p>
+          There is no server that decides anything. No replica is authoritative, no write
+          needs acknowledgement to be durable, and no read waits for the network.
+        </p>
+      </div>
+    </section>
+
+    <section id="install">
+      <h2>Installation</h2>
+      <p>
+        The <code>tangentfeed</code> package pulls in the engine, IndexedDB storage,
+        encryption, and both browser transports. Install component packages directly if
+        you want a narrower dependency footprint.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>browser</span><button class="copy" data-copy="npm install tangentfeed">Copy</button></div>
+<pre>npm install tangentfeed</pre>
+      </div>
+
+      <div class="code">
+        <div class="code__head"><span>node, electron, bun</span><button class="copy" data-copy="npm install tangentfeed @tangentfeed/adapter-sqlite better-sqlite3">Copy</button></div>
+<pre>npm install tangentfeed @tangentfeed/adapter-sqlite better-sqlite3</pre>
+      </div>
+
+      <div class="code">
+        <div class="code__head"><span>react</span><button class="copy" data-copy="npm install tangentfeed @tangentfeed/react">Copy</button></div>
+<pre>npm install tangentfeed @tangentfeed/react</pre>
+      </div>
+
+      <p>
+        Every package ships ES modules with TypeScript declarations. There is no build
+        step or bundler plugin to configure.
+      </p>
+    </section>
+
+    <section id="data">
+      <h2>Reading and writing</h2>
+
+      <h3>Writing</h3>
+      <p>
+        Rows are identified by a client-generated ULID returned from <code>insert</code>.
+        There are no server-assigned identifiers, which is what makes offline creation
+        work without reconciliation later.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>writes</span><button class="copy" data-copy-target="c-write">Copy</button></div>
+<pre id="c-write"><span class="tok-key">const</span> id = <span class="tok-key">await</span> db.<span class="tok-fn">insert</span>(<span class="tok-str">"tasks"</span>, { title: <span class="tok-str">"Prep sambar"</span>, done: <span class="tok-key">false</span>, station: <span class="tok-str">"tiffin"</span> });
+
+<span class="tok-com">// each key becomes one operation on one cell</span>
+<span class="tok-key">await</span> db.<span class="tok-fn">update</span>(<span class="tok-str">"tasks"</span>, id, { done: <span class="tok-key">true</span> });
+
+<span class="tok-com">// null clears a cell; the column disappears from the row</span>
+<span class="tok-key">await</span> db.<span class="tok-fn">update</span>(<span class="tok-str">"tasks"</span>, id, { station: <span class="tok-key">null</span> });
+
+<span class="tok-com">// delete writes a tombstone, it does not erase history</span>
+<span class="tok-key">await</span> db.<span class="tok-fn">delete</span>(<span class="tok-str">"tasks"</span>, id);</pre>
+      </div>
+
+      <h3>Reading</h3>
+      <p>
+        Reads hit local storage and never wait on the network, but they are asynchronous
+        because storage engines are. <code>list</code> returns visible rows sorted by row
+        id, which is insertion order since ULIDs are time-prefixed.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>reads</span><button class="copy" data-copy-target="c-read">Copy</button></div>
+<pre id="c-read"><span class="tok-key">const</span> row = <span class="tok-key">await</span> db.<span class="tok-fn">get</span>(<span class="tok-str">"tasks"</span>, id);   <span class="tok-com">// undefined if absent or deleted</span>
+<span class="tok-key">const</span> rows = <span class="tok-key">await</span> db.<span class="tok-fn">list</span>(<span class="tok-str">"tasks"</span>);     <span class="tok-com">// visible rows, oldest first</span></pre>
+      </div>
+
+      <h3>Reacting to change</h3>
+      <p>
+        <code>subscribe</code> fires after every committed batch, local or remote. The
+        event carries which rows changed and where the change came from, so you can
+        re-read only what you need.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>subscribe</span><button class="copy" data-copy-target="c-sub">Copy</button></div>
+<pre id="c-sub"><span class="tok-key">const</span> unsubscribe = db.<span class="tok-fn">subscribe</span>((event) =&gt; {
+  <span class="tok-com">// event.origin is "local" or "remote"</span>
+  <span class="tok-com">// event.changes is [{ table, row }, ...]</span>
+  <span class="tok-com">// event.ops is the operations just committed</span>
+  <span class="tok-key">if</span> (event.changes.<span class="tok-fn">some</span>((c) =&gt; c.table === <span class="tok-str">"tasks"</span>)) <span class="tok-fn">refreshTasks</span>();
+});</pre>
+      </div>
+
+      <div class="note note--warn">
+        <span class="note__label">Value types</span>
+        <p>
+          Values are any JSON: strings, numbers, booleans, null, arrays, objects. They are
+          stored whole, so a nested object is one cell and concurrent edits to different
+          keys inside it do not merge separately. Promote fields you edit independently to
+          their own columns.
+        </p>
+      </div>
+    </section>
+
+    <section id="transports">
+      <h2>Transports</h2>
+      <p>
+        A transport moves opaque messages between peers. It may lose, duplicate, or
+        reorder them. Pass as many as you like; the engine deduplicates operations, so
+        running several at once costs nothing but bandwidth.
+      </p>
+
+      <h3>Broadcast, for one device</h3>
+      <p>
+        Syncs tabs and workers of the same origin through <code>BroadcastChannel</code>.
+        No infrastructure, no configuration, useful in almost every browser app.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>broadcast</span><button class="copy" data-copy-target="c-bc">Copy</button></div>
+<pre id="c-bc"><span class="tok-key">import</span> { openSpace, broadcast } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({ space: <span class="tok-str">"kitchen-42"</span>, transports: [<span class="tok-fn">broadcast</span>()] });</pre>
+      </div>
+
+      <h3>WebRTC, across networks</h3>
+      <p>
+        Devices connect directly over data channels. A signaling server introduces them
+        and relays connection descriptions, then plays no further part. Kill it after two
+        peers connect and they keep syncing.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>webrtc</span><button class="copy" data-copy-target="c-rtc">Copy</button></div>
+<pre id="c-rtc"><span class="tok-key">import</span> { openSpace, broadcast, webrtc } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({
+  space: <span class="tok-str">"kitchen-42"</span>,
+  transports: [
+    <span class="tok-fn">broadcast</span>(),
+    <span class="tok-fn">webrtc</span>({
+      signaling: <span class="tok-str">"wss://sync.example.com"</span>,
+      iceServers: [
+        { urls: <span class="tok-str">"stun:stun.l.google.com:19302"</span> },
+        { urls: <span class="tok-str">"turn:turn.example.com"</span>, username: <span class="tok-str">"u"</span>, credential: <span class="tok-str">"p"</span> },
+      ],
+      onSignalingState: (state) =&gt; <span class="tok-fn">showStatus</span>(state),
+    }),
+  ],
+});</pre>
+      </div>
+
+      <div class="note">
+        <span class="note__label">Add TURN before you ship</span>
+        <p>
+          STUN alone fails for roughly one connection in six, because some networks refuse
+          direct peer traffic. Without a TURN server those users see sync silently never
+          working. Self-host Coturn or use a hosted provider.
+        </p>
+      </div>
+
+      <h3>QR pairing, with no server</h3>
+      <p>
+        Two devices exchange connection blobs by camera or copy and paste. The offering
+        device mints the space id, the answering device adopts it. Everything after the
+        handshake is identical to any other transport.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>manual pairing</span><button class="copy" data-copy-target="c-qr">Copy</button></div>
+<pre id="c-qr"><span class="tok-key">import</span> { openSpace, manualPair, existing, generateDeviceId } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">const</span> deviceId = <span class="tok-fn">generateDeviceId</span>();
+<span class="tok-key">const</span> pair = <span class="tok-fn">manualPair</span>({ deviceId, onState: (s) =&gt; <span class="tok-fn">showStatus</span>(s) });
+
+<span class="tok-com">// device A: show this as a QR code</span>
+<span class="tok-key">const</span> invite = <span class="tok-key">await</span> pair.<span class="tok-fn">createOffer</span>();
+
+<span class="tok-com">// device B: scan the invite, show the answer back</span>
+<span class="tok-key">const</span> answer = <span class="tok-key">await</span> pair.<span class="tok-fn">acceptOffer</span>(invite);
+
+<span class="tok-com">// device A: scan the answer, and the channel opens</span>
+<span class="tok-key">await</span> pair.<span class="tok-fn">acceptAnswer</span>(answer);
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({
+  space: pair.space,
+  deviceId,
+  transports: [<span class="tok-fn">existing</span>(pair)],
+});</pre>
+      </div>
+
+      <div class="note note--warn">
+        <span class="note__label">Camera access needs HTTPS</span>
+        <p>
+          Browsers block <code>getUserMedia</code> on plain http, so scanning will not work
+          on a bare LAN address. Serve over HTTPS, or let people paste the codes, which
+          works everywhere.
+        </p>
+      </div>
+    </section>
+
+    <section id="storage">
+      <h2>Storage adapters</h2>
+      <p>
+        Storage is chosen per replica and never affects the protocol. Replicas on
+        different engines sync with each other and converge to identical state, which the
+        test suite verifies directly.
+      </p>
+
+      <table>
+        <tr><th>Option</th><th>Where</th><th>Notes</th></tr>
+        <tr><td><code>"indexeddb"</code></td><td>Browsers</td><td>Default when available</td></tr>
+        <tr><td><code>"memory"</code></td><td>Anywhere</td><td>Default outside browsers. Lost on reload</td></tr>
+        <tr><td><code>SqliteAdapter</code></td><td>Node, Electron, Bun</td><td>Real database file you can query</td></tr>
+        <tr><td>Your own</td><td>Anywhere</td><td>Implement the adapter interface</td></tr>
+      </table>
+
+      <h3>SQLite</h3>
+      <p>
+        Construct the adapter yourself so the SQLite binding stays your choice, and so
+        browser bundles never pull in a native dependency.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>sqlite</span><button class="copy" data-copy-target="c-sqlite">Copy</button></div>
+<pre id="c-sqlite"><span class="tok-key">import</span> Database <span class="tok-key">from</span> <span class="tok-str">"better-sqlite3"</span>;
+<span class="tok-key">import</span> { SqliteAdapter, betterSqliteDriver } <span class="tok-key">from</span> <span class="tok-str">"@tangentfeed/adapter-sqlite"</span>;
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({
+  space: <span class="tok-str">"kitchen-42"</span>,
+  storage: SqliteAdapter.<span class="tok-fn">open</span>(<span class="tok-fn">betterSqliteDriver</span>(<span class="tok-key">new</span> <span class="tok-fn">Database</span>(<span class="tok-str">"tasks.db"</span>))),
+});</pre>
+      </div>
+
+      <p>The result is an ordinary SQLite file, readable while the app runs:</p>
+
+      <div class="code">
+        <div class="code__head"><span>shell</span><button class="copy" data-copy="sqlite3 tasks.db &quot;SELECT table_name, column_name, value FROM ops ORDER BY id;&quot;">Copy</button></div>
+<pre>sqlite3 tasks.db <span class="tok-str">"SELECT table_name, column_name, value FROM ops ORDER BY id;"</span></pre>
+      </div>
+
+      <table>
+        <tr><th>Table</th><th>Contents</th></tr>
+        <tr><td><code>ops</code></td><td>The operation log. The primary key is the clock stamp, so key order is causal order</td></tr>
+        <tr><td><code>cells</code></td><td>Materialized state: the winning operation per cell</td></tr>
+        <tr><td><code>meta</code></td><td>Frontier, persisted clock, recorded peer frontiers</td></tr>
+      </table>
+
+      <p>
+        Drivers ship for <code>better-sqlite3</code> and <code>node:sqlite</code>. Bun and
+        Expo bindings fit the same four-method shape.
+      </p>
+
+      <h3>Writing an adapter</h3>
+      <p>
+        An adapter stores operations, stores the winning operation per cell, persists the
+        frontier and clock, and applies batches atomically. That last requirement is not
+        optional: a crash midway through a batch must leave the log and the materialized
+        state agreeing.
+      </p>
+    </section>
+
+    <section id="encryption">
+      <h2>Encryption</h2>
+      <p>
+        Cell values are encrypted with XChaCha20-Poly1305 before they enter the log, so
+        storage, transports, and relays only ever hold ciphertext. Every peer in the space
+        needs the same secret.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>encryption</span><button class="copy" data-copy-target="c-enc">Copy</button></div>
+<pre id="c-enc"><span class="tok-com">// derived from a passphrase, salted with the space id</span>
+encryption: { passphrase: <span class="tok-str">"correct horse battery staple"</span> }
+
+<span class="tok-com">// or supply 32 random bytes shared out of band</span>
+encryption: { secret: keyBytes }</pre>
+      </div>
+
+      <h3>What is protected</h3>
+      <p>
+        Values, and only values. The ciphertext is bound to the operation id, so a
+        ciphertext lifted from one operation and pasted into another fails authentication
+        rather than silently relocating data.
+      </p>
+
+      <h3>What is not</h3>
+      <p>
+        Table, row, and column names travel in the clear, along with timestamps and device
+        identifiers. A relay learns the shape and timing of your activity, never its
+        content. Row tombstones are also plaintext by design, so that peers without the
+        key can still order deletes correctly.
+      </p>
+
+      <div class="note note--warn">
+        <span class="note__label">Key loss is final</span>
+        <p>
+          There is no recovery path. If every device loses the passphrase, the data is
+          gone. Key rotation is not supported in v0.1 either, because ciphertexts are
+          bound to operation ids, so re-keying means rewriting data rather than turning a
+          dial.
+        </p>
+      </div>
+    </section>
+
+    <section id="compaction">
+      <h2>Compaction</h2>
+      <p>
+        The log grows with every write, so superseded operations need reclaiming.
+        Compaction is safe by construction: it never drops an operation that a known peer
+        has not yet received.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>compaction</span><button class="copy" data-copy-target="c-comp">Copy</button></div>
+<pre id="c-comp"><span class="tok-key">const</span> stats = <span class="tok-key">await</span> db.<span class="tok-fn">compact</span>();
+<span class="tok-com">// { removed: 10000, rowsReclaimed: 0, blockedBy: [] }</span>
+
+<span class="tok-com">// see what would happen without touching storage</span>
+<span class="tok-key">await</span> db.<span class="tok-fn">compact</span>({ dryRun: <span class="tok-key">true</span> });</pre>
+      </div>
+
+      <p>
+        Reclamation is bounded by a horizon: the lowest point every known peer has
+        acknowledged. One long-absent peer therefore blocks reclamation, which is why
+        <code>blockedBy</code> names the peers responsible instead of leaving you guessing
+        why nothing happened.
+      </p>
+
+      <h3>Deleted rows</h3>
+      <p>
+        Tombstones are kept by default. Reclaiming them early would let a peer that has
+        been away reintroduce a deleted row, so it requires an explicit opt-in and happens
+        only when the horizon has passed every operation belonging to the row.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>tombstones</span><button class="copy" data-copy-target="c-tomb">Copy</button></div>
+<pre id="c-tomb"><span class="tok-key">await</span> db.<span class="tok-fn">compact</span>({ includeTombstones: <span class="tok-key">true</span> });</pre>
+      </div>
+
+      <p>
+        A reasonable schedule is on startup and then hourly while the app is open. It is
+        cheap and safe to call often.
+      </p>
+    </section>
+
+    <section id="react">
+      <h2>React</h2>
+      <p>
+        The hooks subscribe to the engine and re-read only the slice that changed. Reads
+        are local, so first paint arrives quickly, but they are still asynchronous and the
+        hooks report a loading state for that first pass.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>Tasks.tsx</span><button class="copy" data-copy-target="c-react">Copy</button></div>
+<pre id="c-react"><span class="tok-key">import</span> { useSpace, useRows, useTable } <span class="tok-key">from</span> <span class="tok-str">"@tangentfeed/react"</span>;
+<span class="tok-key">import</span> { broadcast } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">function</span> <span class="tok-fn">Tasks</span>() {
+  <span class="tok-key">const</span> db = <span class="tok-fn">useSpace</span>({ space: <span class="tok-str">"kitchen-42"</span>, transports: [<span class="tok-fn">broadcast</span>()] });
+  <span class="tok-key">const</span> { rows, loading } = <span class="tok-fn">useRows</span>(db, <span class="tok-str">"tasks"</span>);
+  <span class="tok-key">const</span> { insert, update, remove } = <span class="tok-fn">useTable</span>(db, <span class="tok-str">"tasks"</span>);
+
+  <span class="tok-key">if</span> (loading) <span class="tok-key">return</span> &lt;p&gt;Loading&lt;/p&gt;;
+
+  <span class="tok-key">return</span> (
+    &lt;ul&gt;
+      {rows.<span class="tok-fn">map</span>((task) =&gt; (
+        &lt;li key={task.id}&gt;
+          &lt;input
+            type=<span class="tok-str">"checkbox"</span>
+            checked={task.done === <span class="tok-key">true</span>}
+            onChange={(e) =&gt; <span class="tok-fn">update</span>(task.id, { done: e.target.checked })}
+          /&gt;
+          {<span class="tok-fn">String</span>(task.title)}
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</pre>
+      </div>
+
+      <table>
+        <tr><th>Hook</th><th>Returns</th></tr>
+        <tr><td><code>useSpace(options)</code></td><td>The space, or null until it opens</td></tr>
+        <tr><td><code>useRows(db, table)</code></td><td><code>{ rows, loading }</code></td></tr>
+        <tr><td><code>useRow(db, table, id)</code></td><td><code>{ row, loading }</code></td></tr>
+        <tr><td><code>usePeers(db)</code></td><td>Reachable peer ids</td></tr>
+        <tr><td><code>useTable(db, table)</code></td><td><code>{ insert, update, remove }</code></td></tr>
+      </table>
+    </section>
+
+    <section id="api">
+      <h2>API</h2>
+
+      <h3>openSpace(options)</h3>
+      <table>
+        <tr><th>Option</th><th>Type</th><th>Meaning</th></tr>
+        <tr><td><code>space</code></td><td>string</td><td>Required. Peers only sync within the same space</td></tr>
+        <tr><td><code>deviceId</code></td><td>string</td><td>Replica identity. Defaults to a fresh random id</td></tr>
+        <tr><td><code>storage</code></td><td>string or adapter</td><td><code>"indexeddb"</code>, <code>"memory"</code>, or an adapter instance</td></tr>
+        <tr><td><code>transports</code></td><td>array</td><td>Zero or more. Omit for a purely local database</td></tr>
+        <tr><td><code>encryption</code></td><td>object</td><td><code>{ passphrase }</code> or <code>{ secret }</code></td></tr>
+        <tr><td><code>onError</code></td><td>function</td><td>Clock drift, malformed operations, transport failures</td></tr>
+      </table>
+
+      <div class="note note--warn">
+        <span class="note__label">Never share a device id between live replicas</span>
+        <p>
+          Two replicas claiming one identity will evict each other from signaling. Take
+          particular care with <code>sessionStorage</code>, which browsers copy when a tab
+          is duplicated. Persist an id in <code>localStorage</code> or IndexedDB, or mint a
+          fresh one per session and let catch-up repopulate the replica.
+        </p>
+      </div>
+
+      <h3>The space object</h3>
+      <table>
+        <tr><th>Member</th><th>Description</th></tr>
+        <tr><td><code>insert(table, values)</code></td><td>Creates a row, returns its id</td></tr>
+        <tr><td><code>update(table, row, values)</code></td><td>One operation per key</td></tr>
+        <tr><td><code>delete(table, row)</code></td><td>Writes a tombstone</td></tr>
+        <tr><td><code>get(table, row)</code></td><td>The row, or undefined</td></tr>
+        <tr><td><code>list(table)</code></td><td>Visible rows, oldest first</td></tr>
+        <tr><td><code>subscribe(cb)</code></td><td>Fires after every commit. Returns an unsubscribe function</td></tr>
+        <tr><td><code>peers()</code></td><td>Reachable peer ids across all transports</td></tr>
+        <tr><td><code>frontier()</code></td><td>How far this replica has seen from each device</td></tr>
+        <tr><td><code>compact(options)</code></td><td>Reclaims superseded operations</td></tr>
+        <tr><td><code>close()</code></td><td>Stops replication and releases storage</td></tr>
+        <tr><td><code>engine</code></td><td>The underlying engine, for protocol-level work</td></tr>
+      </table>
+    </section>
+
+    <section id="packages">
+      <h2>Packages</h2>
+      <table>
+        <tr><th>Package</th><th>Purpose</th></tr>
+        <tr><td><code>tangentfeed</code></td><td>Batteries-included entry point</td></tr>
+        <tr><td><code>@tangentfeed/core</code></td><td>Engine, clocks, merge, replication. Zero dependencies</td></tr>
+        <tr><td><code>@tangentfeed/adapter-idb</code></td><td>IndexedDB storage</td></tr>
+        <tr><td><code>@tangentfeed/adapter-sqlite</code></td><td>SQLite storage</td></tr>
+        <tr><td><code>@tangentfeed/crypto</code></td><td>End-to-end encryption</td></tr>
+        <tr><td><code>@tangentfeed/transport-broadcast</code></td><td>Tabs and workers</td></tr>
+        <tr><td><code>@tangentfeed/transport-webrtc</code></td><td>WebRTC mesh and QR pairing</td></tr>
+        <tr><td><code>@tangentfeed/signaling-server</code></td><td>Blind signaling relay</td></tr>
+        <tr><td><code>@tangentfeed/react</code></td><td>React hooks</td></tr>
+      </table>
+    </section>
+
+    <section id="protocol">
+      <h2>Protocol</h2>
+      <p>
+        The protocol is specified independently of this implementation, so a client in
+        another language can interoperate. What follows is an orientation; the
+        specification itself is the authority.
+      </p>
+
+      <h3>Operation</h3>
+      <table>
+        <tr><th>Field</th><th>Meaning</th></tr>
+        <tr><td><code>id</code></td><td>The clock stamp, globally unique, so replays are no-ops</td></tr>
+        <tr><td><code>table</code>, <code>row</code>, <code>column</code></td><td>The cell. Column <code>"-"</code> is reserved for row tombstones</td></tr>
+        <tr><td><code>value</code></td><td>Any JSON value, or a <code>e1:</code> envelope when encrypted</td></tr>
+        <tr><td><code>hlc</code></td><td>Hybrid logical clock stamp</td></tr>
+        <tr><td><code>device</code></td><td>The writing replica</td></tr>
+      </table>
+
+      <h3>Clock encoding</h3>
+      <p>
+        A stamp is <code>millis-counter-device</code> in fixed-width lowercase hex, 34
+        characters total. Plain string comparison equals logical ordering, which means
+        storage engines can sort stamps without understanding them.
+      </p>
+
+      <h3>Drift protection</h3>
+      <p>
+        An operation stamped more than five minutes ahead of the receiving clock is
+        rejected outright. Accepting it would let one broken clock win every conflict far
+        into the future.
+      </p>
+
+      <h3>Sync session</h3>
+      <p>
+        Peers exchange a hello with their clocks, then frontiers, then the operations the
+        other side is missing, then acknowledgements. After catch-up they forward new
+        operations as they happen. The exchange repeats on every reconnect, which is how
+        gaps heal.
+      </p>
+    </section>
+
+    <section id="conformance">
+      <h2>Conformance</h2>
+      <p>
+        The suite is language-neutral JSON: a batch of operations plus the exact state and
+        frontier that must result. An implementation is conforming when it produces
+        identical results from every vector applied in each of these orders.
+      </p>
+
+      <ol>
+        <li>As given</li>
+        <li>Reversed</li>
+        <li>At least two independent shuffles</li>
+        <li>Shuffled with every operation duplicated</li>
+        <li>One operation at a time, shuffled</li>
+      </ol>
+
+      <p>
+        Passing all five is the practical expression of the core guarantee: delivery
+        order, duplication, and batching cannot change the outcome. The reference
+        implementation runs this matrix against both its storage engines.
+      </p>
+    </section>
+
+    <section id="deploy">
+      <h2>Deployment</h2>
+
+      <h3>Signaling server</h3>
+      <p>
+        Stateless, small, and unable to read your data. It tracks who is present in a
+        space and relays connection blobs, nothing else. Restart it freely.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>shell</span><button class="copy" data-copy="npx @tangentfeed/signaling-server">Copy</button></div>
+<pre>npx @tangentfeed/signaling-server   <span class="tok-com"># listens on :8787</span></pre>
+      </div>
+
+      <p>
+        Serve it behind TLS as <code>wss://</code> in production. If you run several
+        instances, route peers in the same space to the same instance, since presence is
+        per instance.
+      </p>
+
+      <h3>An always-on replica</h3>
+      <p>
+        Direct peer sync needs both devices open at once. A small Node process holding a
+        replica removes that constraint: each device syncs with it whenever convenient,
+        and it is a backup as a side effect. It has no special authority, it just has good
+        uptime.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>relay-peer.ts</span><button class="copy" data-copy-target="c-relay">Copy</button></div>
+<pre id="c-relay"><span class="tok-key">import</span> Database <span class="tok-key">from</span> <span class="tok-str">"better-sqlite3"</span>;
+<span class="tok-key">import</span> { SqliteAdapter, betterSqliteDriver } <span class="tok-key">from</span> <span class="tok-str">"@tangentfeed/adapter-sqlite"</span>;
+<span class="tok-key">import</span> { openSpace, webrtc } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({
+  space: process.env.SPACE,
+  storage: SqliteAdapter.<span class="tok-fn">open</span>(<span class="tok-fn">betterSqliteDriver</span>(<span class="tok-key">new</span> <span class="tok-fn">Database</span>(<span class="tok-str">"replica.db"</span>))),
+  transports: [<span class="tok-fn">webrtc</span>({ signaling: process.env.SIGNALING })],
+  encryption: { secret: keyBytes },  <span class="tok-com">// optional: it holds only ciphertext</span>
+});
+
+<span class="tok-fn">setInterval</span>(() =&gt; db.<span class="tok-fn">compact</span>(), 3600_000);</pre>
+      </div>
+
+      <h3>Hosting the app</h3>
+      <p>
+        The client is static files. Anything that serves HTML works. Serve over HTTPS so
+        camera pairing and clipboard actions are available.
+      </p>
+    </section>
+
+    <section id="recipes">
+      <h2>Recipes</h2>
+
+      <h3>Give a device a stable identity</h3>
+      <p>
+        Persist the id somewhere a duplicated tab will not inherit, which rules out
+        <code>sessionStorage</code>.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>identity.ts</span><button class="copy" data-copy-target="c-ident">Copy</button></div>
+<pre id="c-ident"><span class="tok-key">import</span> { generateDeviceId } <span class="tok-key">from</span> <span class="tok-str">"tangentfeed"</span>;
+
+<span class="tok-key">function</span> <span class="tok-fn">deviceId</span>() {
+  <span class="tok-key">let</span> id = localStorage.<span class="tok-fn">getItem</span>(<span class="tok-str">"device-id"</span>);
+  <span class="tok-key">if</span> (!id) {
+    id = <span class="tok-fn">generateDeviceId</span>();
+    localStorage.<span class="tok-fn">setItem</span>(<span class="tok-str">"device-id"</span>, id);
+  }
+  <span class="tok-key">return</span> id;
+}</pre>
+      </div>
+
+      <h3>Share a space by link</h3>
+      <p>
+        A space id plus a secret is everything needed to join. Put the secret in the URL
+        fragment, which browsers do not send to servers.
+      </p>
+
+      <div class="code">
+        <div class="code__head"><span>invite.ts</span><button class="copy" data-copy-target="c-invite">Copy</button></div>
+<pre id="c-invite"><span class="tok-com">// https://app.example.com/#space=kitchen-42&amp;key=BASE64KEY</span>
+<span class="tok-key">const</span> params = <span class="tok-key">new</span> <span class="tok-fn">URLSearchParams</span>(location.hash.<span class="tok-fn">slice</span>(<span class="tok-str">1</span>));
+
+<span class="tok-key">const</span> db = <span class="tok-key">await</span> <span class="tok-fn">openSpace</span>({
+  space: params.<span class="tok-fn">get</span>(<span class="tok-str">"space"</span>),
+  encryption: { secret: <span class="tok-fn">decodeKey</span>(params.<span class="tok-fn">get</span>(<span class="tok-str">"key"</span>)) },
+  transports: [<span class="tok-fn">broadcast</span>(), <span class="tok-fn">webrtc</span>({ signaling: SIGNALING })],
+});</pre>
+      </div>
+
+      <h3>Show sync status honestly</h3>
+      <p>
+        People tolerate being offline. They do not tolerate not knowing. Surface peer
+        count and signaling state rather than a spinner.
+      </p>
+
+      <h3>Model rows for merging</h3>
+      <p>
+        Fields that get edited independently belong in separate columns, because merging
+        happens per cell. A title and a status merge cleanly. The same two values nested
+        inside one object do not, since the object is a single cell.
+      </p>
+    </section>
+
+    <section id="troubleshooting">
+      <h2>Troubleshooting</h2>
+
+      <h4>Peers stay at zero</h4>
+      <p>
+        Check signaling state first. If it never reaches connected, the server or URL is
+        wrong. If it connects but no peers appear, the two clients are probably in
+        different spaces. If peers appear but channels never open, the network is blocking
+        direct traffic, which is common on guest Wi-Fi. Test on a phone hotspot to
+        confirm, and add TURN to fix it properly.
+      </p>
+
+      <h4>Two tabs never see each other</h4>
+      <p>
+        Broadcast requires a real origin, so pages opened from the file system are
+        isolated. Serve over http or https. If both tabs share a device id, one evicts the
+        other; give each a distinct id.
+      </p>
+
+      <h4>Clock drift errors</h4>
+      <p>
+        A device's clock is more than five minutes off. Fix the system time. The
+        protection is deliberate: accepting the operation would poison conflict resolution
+        far into the future.
+      </p>
+
+      <h4>Compaction reclaims nothing</h4>
+      <p>
+        Read <code>blockedBy</code>. A peer that has been away pins the horizon, and
+        nothing below it can be dropped until that peer catches up or you stop tracking
+        it.
+      </p>
+
+      <h4>Storage keeps growing</h4>
+      <p>
+        Call <code>compact()</code> periodically. Without it the log keeps every
+        historical write forever.
+      </p>
+    </section>
+
+    <section id="status">
+      <h2>Status and limits</h2>
+      <p>
+        Version 0.1. The protocol is stable enough to build on and the conformance vectors
+        pin down its behaviour, but the wire format is not frozen until 1.0.
+      </p>
+
+      <h3>Known limits</h3>
+      <ul>
+        <li>A space syncs whole. There is no partial replication or per-row access control.</li>
+        <li>One user's trusted devices is the model. Multi-user collaboration with permissions is not.</li>
+        <li>Values merge whole, so there are no collaborative text or ordered-list types yet.</li>
+        <li>Key rotation requires rewriting data rather than a configuration change.</li>
+        <li>Peers must overlap in time to sync directly. An always-on replica is the answer today.</li>
+      </ul>
+
+      <h3>Planned</h3>
+      <ul>
+        <li>A typed schema layer with inference.</li>
+        <li>Store-and-forward mailboxes, so peers that never overlap still converge.</li>
+        <li>React Native adapters.</li>
+        <li>A second implementation in another language, validated by the same vectors.</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="shell">
+    <p>TangentFeed v0.1 · MIT licensed · <a href="https://github.com/sreerajta/tangentfeed">GitHub</a></p>
+  </div>
+</footer>
+
+<script>
+// copy buttons
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".copy");
+  if (!btn) return;
+  const target = btn.dataset.copyTarget;
+  const text = target ? document.getElementById(target).innerText : btn.dataset.copy;
+  navigator.clipboard?.writeText(text);
+  const was = btn.textContent;
+  btn.textContent = "Copied";
+  setTimeout(() => (btn.textContent = was), 1400);
+});
+
+// sidebar filter
+const search = document.getElementById("doc-search");
+const noResults = document.getElementById("no-results");
+const navItems = [...document.querySelectorAll(".nav-group li")];
+
+search.addEventListener("input", () => {
+  const q = search.value.trim().toLowerCase();
+  let shown = 0;
+  navItems.forEach((li) => {
+    const hit = !q || li.textContent.toLowerCase().includes(q);
+    li.classList.toggle("is-hidden", !hit);
+    if (hit) shown++;
+  });
+  document.querySelectorAll(".nav-group").forEach((group) => {
+    const any = [...group.querySelectorAll("li")].some((li) => !li.classList.contains("is-hidden"));
+    group.style.display = any ? "" : "none";
+  });
+  noResults.hidden = shown > 0;
+});
+
+// scrollspy
+const links = new Map(
+  [...document.querySelectorAll(".nav-group a")].map((a) => [a.getAttribute("href").slice(1), a]),
+);
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      links.forEach((a) => a.classList.remove("is-current"));
+      links.get(entry.target.id)?.classList.add("is-current");
+    });
+  },
+  { rootMargin: "-80px 0px -70% 0px" },
+);
+document.querySelectorAll(".doc-body section").forEach((s) => observer.observe(s));
+</script>
+</body>
+</html>

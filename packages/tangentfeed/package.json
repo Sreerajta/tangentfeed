@@ -1,0 +1,51 @@
+{
+  "name": "tangentfeed",
+  "version": "0.1.0",
+  "description": "Offline-first, peer-to-peer data sync. Any storage, any transport, any language.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "offline-first",
+    "sync",
+    "crdt",
+    "p2p",
+    "webrtc",
+    "local-first",
+    "indexeddb"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tangentfeed/core": "0.1.0",
+    "@tangentfeed/adapter-idb": "0.1.0",
+    "@tangentfeed/crypto": "0.1.0",
+    "@tangentfeed/transport-broadcast": "0.1.0",
+    "@tangentfeed/transport-webrtc": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sreerajta/tangentfeed.git",
+    "directory": "packages/tangentfeed"
+  }
+}
