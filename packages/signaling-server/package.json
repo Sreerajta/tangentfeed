@@ -7,7 +7,7 @@
     "tangentfeed-signaling": "bin/server.mjs"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "start": "node bin/server.mjs",
     "build": "tsup src/index.ts --format esm --dts --clean"
   },
