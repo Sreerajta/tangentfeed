@@ -32,3 +32,8 @@ npm test
 - [x] SQLite adapter (`@tangentfeed/adapter-sqlite`): driver-agnostic (better-sqlite3 / node:sqlite / bun:sqlite), real queryable tables, `BEGIN IMMEDIATE` atomicity, 14 tests incl. conformance vectors and on-disk persistence; Node CLI peer demo in `apps/node-demo`
 
 - [x] Renamed from `syncdb` to `tangentfeed` before first publish. Normative identifiers (HKDF info string, data channel label, storage prefix) changed with it; see PROTOCOL.md.
+
+- [x] Typed schema layer (`@tangentfeed/schema`): field DSL with inference,
+  local write validation with defaults, `parseRow` for opt-in checking of
+  foreign rows; zero runtime dependencies, core untouched. Includes an
+  op-stream equivalence test proving the layer cannot perturb the wire format.

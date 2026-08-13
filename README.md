@@ -74,6 +74,7 @@ opaque messages, and may lose, duplicate, or reorder them freely.
 | `@tangentfeed/transport-broadcast` | Same-device tabs and workers |
 | `@tangentfeed/transport-webrtc` | Cross-device WebRTC + serverless QR pairing |
 | `@tangentfeed/signaling-server` | Blind signaling relay (~120 lines) |
+| `@tangentfeed/schema` | Typed schema: inference + local write validation. **Zero dependencies** |
 | `@tangentfeed/react` | React hooks |
 
 ## React
@@ -205,16 +206,37 @@ v0.1. The protocol is stable enough to build on and the conformance vectors pin
 down its behaviour, but it is pre-1.0: expect refinement before the format is
 frozen. See [ROADMAP.md](./ROADMAP.md) for what shipped and when.
 
-Planned, currently out of scope: a typed schema layer, store-and-forward
-mailboxes for peers that are never online simultaneously, React Native
-adapters, a Rust core with FFI bindings, and rich CRDT value types
-(collaborative text, ordered lists).
+Planned, currently out of scope: store-and-forward mailboxes for peers that
+are never online simultaneously, React Native adapters, a Rust core with FFI
+bindings, and rich CRDT value types (collaborative text, ordered lists).
+
+## Typed schemas
+
+`@tangentfeed/schema` infers TypeScript types from a schema and validates local
+writes:
+
+```ts
+import { s, defineSchema } from "@tangentfeed/schema";
+
+const schema = defineSchema({
+  tasks: { title: s.string(), done: s.boolean().default(false) },
+});
+
+const db = await openSpace({ space: "kitchen-42", schema });
+const rows = await db.list("tasks");   // { id, title, done }[]
+```
+
+Validation covers local writes only; data from peers is never inspected, so a
+peer on a different schema still syncs. That also means read types are an
+assertion about the schema you write through rather than a guarantee about the
+op log — use `parseRow` where that distinction matters. See
+[packages/schema](./packages/schema/README.md).
 
 ## Development
 
 ```bash
 npm install
-npm test          # 136 tests across 8 packages
+npm test          # 195 tests across 9 packages
 npm run build     # every package, with type declarations
 ```
 
