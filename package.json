@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
-    "build": "npm run build -w packages/core && npm run build -w packages/adapter-idb && npm run build -w packages/adapter-sqlite && npm run build -w packages/crypto && npm run build -w packages/transport-broadcast && npm run build -w packages/transport-webrtc && npm run build -w packages/signaling-server && npm run build -w packages/tangentfeed && npm run build -w packages/react",
+    "build": "npm run build -w packages/core && npm run build -w packages/adapter-idb && npm run build -w packages/adapter-sqlite && npm run build -w packages/crypto && npm run build -w packages/transport-broadcast && npm run build -w packages/transport-webrtc && npm run build -w packages/signaling-server && npm run build -w packages/schema && npm run build -w packages/tangentfeed && npm run build -w packages/react",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "site": "npm run build -w site"
   },

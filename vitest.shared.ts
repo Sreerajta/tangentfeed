@@ -13,6 +13,7 @@ export const aliases = Object.fromEntries([
   pkg("@tangentfeed/adapter-idb", "adapter-idb"),
   pkg("@tangentfeed/adapter-sqlite", "adapter-sqlite"),
   pkg("@tangentfeed/crypto", "crypto"),
+  pkg("@tangentfeed/schema", "schema"),
   pkg("@tangentfeed/transport-broadcast", "transport-broadcast"),
   pkg("@tangentfeed/transport-webrtc", "transport-webrtc"),
   pkg("@tangentfeed/signaling-server", "signaling-server"),

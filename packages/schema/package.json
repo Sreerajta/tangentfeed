@@ -1,0 +1,35 @@
+{
+  "name": "@tangentfeed/schema",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsup src/index.ts --format esm --dts --clean"
+  },
+  "devDependencies": {
+    "@tangentfeed/core": "0.1.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "tsup": "^8.5.0"
+  },
+  "description": "Typed schema layer for tangentfeed: inference plus local write validation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sreerajta/tangentfeed.git",
+    "directory": "packages/schema"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
