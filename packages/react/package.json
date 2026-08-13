@@ -17,6 +17,7 @@
     "README.md"
   ],
   "scripts": {
+    "test": "vitest run --passWithNoTests",
     "build": "tsup src/index.ts --format esm --dts --clean --external react"
   },
   "peerDependencies": {
@@ -24,6 +25,7 @@
   },
   "dependencies": {
     "@tangentfeed/core": "0.1.0",
+    "@tangentfeed/schema": "0.1.0",
     "tangentfeed": "0.1.0"
   },
   "devDependencies": {
