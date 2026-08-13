@@ -191,3 +191,62 @@ export function validateUpdate(
   }
   return checkColumns(shape, table, values);
 }
+
+export interface ParseIssue {
+  readonly path: string;
+  readonly expected: string;
+  readonly received: string;
+}
+
+export type ParseResult<T> =
+  | { readonly ok: true; readonly row: T }
+  | { readonly ok: false; readonly issues: readonly ParseIssue[] };
+
+/**
+ * Opt-in check of a row that has already been read.
+ *
+ * Reads are otherwise asserted rather than proven: the inferred row type
+ * describes the schema you write through, not the contents of the op log. Use
+ * this on paths where a peer may have written under a different schema.
+ *
+ * Collects every issue rather than throwing on the first — the caller is
+ * diagnosing foreign data, not fixing their own typo.
+ */
+export function parseRow(
+  shape: TableShape,
+  row: unknown,
+): ParseResult<Record<string, Json> & { id: string }> {
+  if (row === null || typeof row !== "object" || Array.isArray(row)) {
+    return {
+      ok: false,
+      issues: [{ path: "", expected: "object", received: describe(row) }],
+    };
+  }
+
+  const record = row as Record<string, unknown>;
+  const issues: ParseIssue[] = [];
+
+  for (const key of Object.keys(record)) {
+    if (key === "id") continue;
+    if (!(key in shape)) {
+      issues.push({ path: key, expected: "no such column", received: describe(record[key]) });
+    }
+  }
+
+  for (const [column, field] of Object.entries(shape)) {
+    if (!(column in record)) {
+      if (!field.isOptional) {
+        issues.push({ path: column, expected: field.kind, received: "undefined" });
+      }
+      continue;
+    }
+    const bad = checkValue(field, record[column], column);
+    if (bad) {
+      issues.push({ path: bad.path, expected: bad.expected, received: describe(record[column]) });
+    }
+  }
+
+  return issues.length === 0
+    ? { ok: true, row: record as Record<string, Json> & { id: string } }
+    : { ok: false, issues };
+}

@@ -12,4 +12,7 @@ export {
   SchemaError,
   validateInsert,
   validateUpdate,
+  parseRow,
+  type ParseIssue,
+  type ParseResult,
 } from "./validate.js";
