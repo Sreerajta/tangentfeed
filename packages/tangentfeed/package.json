@@ -34,6 +34,7 @@
     "@tangentfeed/core": "0.1.0",
     "@tangentfeed/adapter-idb": "0.1.0",
     "@tangentfeed/crypto": "0.1.0",
+    "@tangentfeed/schema": "0.1.0",
     "@tangentfeed/transport-broadcast": "0.1.0",
     "@tangentfeed/transport-webrtc": "0.1.0"
   },

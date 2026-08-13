@@ -39,13 +39,22 @@ import {
   type ManualPairState,
   type SignalingState,
 } from "@tangentfeed/transport-webrtc";
+import {
+  validateInsert,
+  validateUpdate,
+  type SchemaShape,
+  type InsertInput,
+  type RowOf,
+  type TableName,
+  type UpdateInput,
+} from "@tangentfeed/schema";
 
 export type TransportFactory = (ctx: {
   space: string;
   deviceId: string;
 }) => Transport | Promise<Transport>;
 
-export interface OpenSpaceOptions {
+export interface OpenSpaceOptions<S extends SchemaShape | undefined = undefined> {
   /** Logical database name; peers only sync within the same space. */
   space: string;
   /**
@@ -79,20 +88,40 @@ export interface OpenSpaceOptions {
   encryption?: { passphrase: string } | { secret: Uint8Array };
   /** Surface protocol-level problems (clock drift, bad ops, transport errors). */
   onError?: (err: unknown, ctx: { peer?: string }) => void;
+  /**
+   * Optional typed schema. Supplying one types the data methods and validates
+   * local writes; it never inspects data arriving from peers, so a peer on a
+   * different schema still syncs completely.
+   */
+  schema?: S;
 }
 
-export interface SyncedSpace {
+export interface SyncedSpace<S extends SchemaShape | undefined = undefined> {
   readonly space: string;
   readonly deviceId: string;
   /** Underlying engine, for protocol-level work. */
   readonly engine: SyncEngine;
 
   // data
-  insert(table: string, values: Record<string, Json>): Promise<string>;
-  update(table: string, row: string, values: Record<string, Json>): Promise<void>;
-  delete(table: string, row: string): Promise<void>;
-  get(table: string, row: string): Promise<RowData | undefined>;
-  list(table: string): Promise<RowData[]>;
+  insert: S extends SchemaShape
+    ? <T extends TableName<S>>(table: T, values: InsertInput<S, T>) => Promise<string>
+    : (table: string, values: Record<string, Json>) => Promise<string>;
+
+  update: S extends SchemaShape
+    ? <T extends TableName<S>>(table: T, row: string, values: UpdateInput<S, T>) => Promise<void>
+    : (table: string, row: string, values: Record<string, Json>) => Promise<void>;
+
+  delete: S extends SchemaShape
+    ? (table: TableName<S>, row: string) => Promise<void>
+    : (table: string, row: string) => Promise<void>;
+
+  get: S extends SchemaShape
+    ? <T extends TableName<S>>(table: T, row: string) => Promise<RowOf<S, T> | undefined>
+    : (table: string, row: string) => Promise<RowData | undefined>;
+
+  list: S extends SchemaShape
+    ? <T extends TableName<S>>(table: T) => Promise<RowOf<S, T>[]>
+    : (table: string) => Promise<RowData[]>;
 
   /** Called after every committed change, local or remote. */
   subscribe(cb: (event: ChangeEvent) => void): () => void;
@@ -110,7 +139,23 @@ export interface SyncedSpace {
   close(): Promise<void>;
 }
 
-export async function openSpace(opts: OpenSpaceOptions): Promise<SyncedSpace> {
+/**
+ * Overloads, not one generic signature, so the no-schema call keeps exactly
+ * the types it had before this layer existed.
+ *
+ * Order is load-bearing: `Parameters<typeof openSpace>` resolves against the
+ * LAST overload, and existing code uses that utility type to describe options.
+ * A single generic signature resolves S to its constraint there, which widens
+ * the return to SyncedSpace<SchemaShape | undefined> and breaks assignment to
+ * SyncedSpace.
+ */
+export function openSpace<S extends SchemaShape>(
+  opts: OpenSpaceOptions<S> & { schema: S },
+): Promise<SyncedSpace<S>>;
+export function openSpace(opts: OpenSpaceOptions<undefined>): Promise<SyncedSpace<undefined>>;
+export async function openSpace<S extends SchemaShape | undefined = undefined>(
+  opts: OpenSpaceOptions<S>,
+): Promise<SyncedSpace<S>> {
   const deviceId = opts.deviceId ?? generateDeviceId();
   const space = opts.space;
 
@@ -144,11 +189,28 @@ export async function openSpace(opts: OpenSpaceOptions): Promise<SyncedSpace> {
     space,
     deviceId,
     engine,
-    insert: (t, v) => engine.insert(t, v),
-    update: (t, r, v) => engine.update(t, r, v),
-    delete: (t, r) => engine.delete(t, r),
-    get: (t, r) => engine.get(t, r),
-    list: (t) => engine.list(t),
+    // `async` is load-bearing: validation throws synchronously, and these
+    // methods are declared to return a Promise. Without it a SchemaError would
+    // escape past `.catch()` and reject-style handling.
+    insert: (async (table: string, values: Record<string, Json>) =>
+      engine.insert(
+        table,
+        opts.schema ? validateInsert(opts.schema, table, values) : values,
+      )) as SyncedSpace<S>["insert"],
+
+    update: (async (table: string, row: string, values: Record<string, Json>) =>
+      engine.update(
+        table,
+        row,
+        opts.schema ? validateUpdate(opts.schema, table, values) : values,
+      )) as SyncedSpace<S>["update"],
+
+    // The read casts are where "asserted, not proven" lives: the engine still
+    // returns RowData and the schema layer relabels it without checking. That
+    // is deliberate — see parseRow for the opt-in check.
+    delete: ((t: string, r: string) => engine.delete(t, r)) as SyncedSpace<S>["delete"],
+    get: ((t: string, r: string) => engine.get(t, r)) as SyncedSpace<S>["get"],
+    list: ((t: string) => engine.list(t)) as SyncedSpace<S>["list"],
     subscribe: (cb) => engine.subscribe(cb),
     peers: () => {
       const ids = new Set<string>();
@@ -173,7 +235,7 @@ export async function openSpace(opts: OpenSpaceOptions): Promise<SyncedSpace> {
       for (const t of transports) t.close();
       (storage as { close?: () => void }).close?.();
     },
-  };
+  } as SyncedSpace<S>;
 }
 
 // ---------- transport factories ----------
