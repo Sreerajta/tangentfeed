@@ -1,0 +1,67 @@
+{
+  "name": "two-party-catchup",
+  "description": "A recorded sync session (§6) from one peer's point of view. Two devices wrote while offline and now connect. This pins the two decisions that determine whether two implementations can actually talk: which ops you must send given the frontier a peer advertises, and what your state and frontier must be after applying theirs. Message framing itself is pinned by the table in §6.1.",
+  "space": "conformance",
+  "localDevice": "aaaaaaaaaaaaaaaa",
+  "remoteDevice": "bbbbbbbbbbbbbbbb",
+
+  "localOps": [
+    { "id": "018bcfe56800-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "title", "value": "buy milk", "hlc": "018bcfe56800-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
+    { "id": "018bcfe56801-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "done", "value": false, "hlc": "018bcfe56801-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" }
+  ],
+
+  "remoteOps": [
+    { "id": "018bcfe56800-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "done", "value": true, "hlc": "018bcfe56800-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
+    { "id": "018bcfe56802-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FBB", "column": "title", "value": "walk dog", "hlc": "018bcfe56802-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" }
+  ],
+
+  "advertisedFrontier": {
+    "description": "The frontier the local peer sends in its `since` message before applying anything. Derived from localOps alone.",
+    "expected": {
+      "aaaaaaaaaaaaaaaa": "018bcfe56801-0000-aaaaaaaaaaaaaaaa"
+    }
+  },
+
+  "diffCases": [
+    {
+      "description": "A peer that has nothing must receive everything. This is also what a peer sends after losing its frontier, and it must be safe to replay.",
+      "peerFrontier": {},
+      "expectedOpIds": [
+        "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+        "018bcfe56801-0000-aaaaaaaaaaaaaaaa"
+      ]
+    },
+    {
+      "description": "Strictly above, not at or above. A peer that already holds our first op must receive only the second; sending the one it named back to it is a common off-by-one.",
+      "peerFrontier": { "aaaaaaaaaaaaaaaa": "018bcfe56800-0000-aaaaaaaaaaaaaaaa" },
+      "expectedOpIds": ["018bcfe56801-0000-aaaaaaaaaaaaaaaa"]
+    },
+    {
+      "description": "A fully caught-up peer receives an empty batch. Sending `ops` with an empty array is legal; so is sending nothing.",
+      "peerFrontier": { "aaaaaaaaaaaaaaaa": "018bcfe56801-0000-aaaaaaaaaaaaaaaa" },
+      "expectedOpIds": []
+    },
+    {
+      "description": "A frontier naming a device we have never heard of does not filter our own ops.",
+      "peerFrontier": { "cccccccccccccccc": "018bcfe56900-0000-cccccccccccccccc" },
+      "expectedOpIds": [
+        "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+        "018bcfe56801-0000-aaaaaaaaaaaaaaaa"
+      ]
+    }
+  ],
+
+  "afterApplyingRemote": {
+    "description": "Both peers converge on this once each has applied the other's ops. The `done` cell is the interesting one: the local write at millis ...801 beats the remote write at ...800, so `false` wins despite arriving first.",
+    "expectedState": {
+      "tasks": {
+        "01HZX3NDEKTSV4RRFFQ69G5FAA": { "title": "buy milk", "done": false },
+        "01HZX3NDEKTSV4RRFFQ69G5FBB": { "title": "walk dog" }
+      }
+    },
+    "expectedFrontier": {
+      "aaaaaaaaaaaaaaaa": "018bcfe56801-0000-aaaaaaaaaaaaaaaa",
+      "bbbbbbbbbbbbbbbb": "018bcfe56802-0000-bbbbbbbbbbbbbbbb"
+    }
+  }
+}

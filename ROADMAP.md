@@ -33,6 +33,13 @@ npm test
 
 - [x] Renamed from `syncdb` to `tangentfeed` before first publish. Normative identifiers (HKDF info string, data channel label, storage prefix) changed with it; see PROTOCOL.md.
 
+- [x] Spec hardening for third-party implementations: §8.1 canonical JSON
+  pinned to RFC 8785 (verified descriptive, not a change — the existing
+  implementation already matched it exactly, including the RFC's own vector);
+  §6.1 message schema table; new `hlc/`, `canonical/` and `session/` vector
+  directories with harnesses; `conformance/IMPLEMENTING.md`. Appendix B
+  previously advertised vectors that did not exist and now matches reality.
+
 - [x] Typed schema layer (`@tangentfeed/schema`): field DSL with inference,
   local write validation with defaults, `parseRow` for opt-in checking of
   foreign rows; zero runtime dependencies, core untouched. Includes an

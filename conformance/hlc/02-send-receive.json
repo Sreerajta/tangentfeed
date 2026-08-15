@@ -1,0 +1,91 @@
+{
+  "name": "hlc-send-receive",
+  "kind": "algebra",
+  "description": "The send and receive rules of §4.1, plus drift rejection (§4.5). Timestamps are given as (millis, counter) rather than encoded strings so the arithmetic is readable; encoding is covered by 01-encoding.json. `pt` is the physical wall clock the implementation must be driven with, which is why these vectors carry an explicit clock rather than reading the host's.",
+  "deviceId": "aaaaaaaaaaaaaaaa",
+  "maxDriftMs": 300000,
+  "send": [
+    {
+      "description": "physical clock has advanced past the logical clock: adopt it and reset the counter",
+      "state": { "millis": 1000, "counter": 5 },
+      "pt": 2000,
+      "expected": { "millis": 2000, "counter": 0 }
+    },
+    {
+      "description": "physical clock is behind (clock skew or two ops in one millisecond): keep millis, bump the counter",
+      "state": { "millis": 2000, "counter": 5 },
+      "pt": 1000,
+      "expected": { "millis": 2000, "counter": 6 }
+    },
+    {
+      "description": "physical clock exactly equals millis: still a counter bump, because the rule is strictly greater",
+      "state": { "millis": 2000, "counter": 5 },
+      "pt": 2000,
+      "expected": { "millis": 2000, "counter": 6 }
+    },
+    {
+      "description": "counter overflow rolls into the next millisecond rather than wrapping to a duplicate",
+      "state": { "millis": 2000, "counter": 65535 },
+      "pt": 1000,
+      "expected": { "millis": 2001, "counter": 0 }
+    }
+  ],
+  "receive": [
+    {
+      "description": "remote is ahead: adopt remote millis, counter is remote counter + 1",
+      "state": { "millis": 1000, "counter": 0 },
+      "pt": 1000,
+      "remote": { "millis": 2000, "counter": 3 },
+      "expected": { "millis": 2000, "counter": 4 }
+    },
+    {
+      "description": "local is ahead: keep local millis, bump local counter",
+      "state": { "millis": 3000, "counter": 7 },
+      "pt": 1000,
+      "remote": { "millis": 2000, "counter": 3 },
+      "expected": { "millis": 3000, "counter": 8 }
+    },
+    {
+      "description": "local and remote share the same millisecond: counter is max of both, plus one",
+      "state": { "millis": 2000, "counter": 7 },
+      "pt": 1000,
+      "remote": { "millis": 2000, "counter": 3 },
+      "expected": { "millis": 2000, "counter": 8 }
+    },
+    {
+      "description": "physical clock is ahead of both: adopt it and reset the counter to zero",
+      "state": { "millis": 1000, "counter": 5 },
+      "pt": 5000,
+      "remote": { "millis": 2000, "counter": 3 },
+      "expected": { "millis": 5000, "counter": 0 }
+    },
+    {
+      "description": "counter overflow on receive rolls into the next millisecond",
+      "state": { "millis": 2000, "counter": 65535 },
+      "pt": 1000,
+      "remote": { "millis": 2000, "counter": 65535 },
+      "expected": { "millis": 2001, "counter": 0 }
+    },
+    {
+      "description": "remote exactly at the drift limit is accepted; the rule is strictly greater than pt + MAX_DRIFT",
+      "state": { "millis": 1000, "counter": 0 },
+      "pt": 1000,
+      "remote": { "millis": 301000, "counter": 0 },
+      "expected": { "millis": 301000, "counter": 1 }
+    },
+    {
+      "description": "one millisecond beyond the drift limit is rejected, and the whole batch fails",
+      "state": { "millis": 1000, "counter": 0 },
+      "pt": 1000,
+      "remote": { "millis": 301001, "counter": 0 },
+      "expectedError": "CLOCK_DRIFT"
+    },
+    {
+      "description": "a wildly future timestamp is rejected rather than poisoning LWW forever",
+      "state": { "millis": 1000, "counter": 0 },
+      "pt": 1000,
+      "remote": { "millis": 99999999999, "counter": 0 },
+      "expectedError": "CLOCK_DRIFT"
+    }
+  ]
+}

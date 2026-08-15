@@ -1,0 +1,81 @@
+{
+  "name": "hlc-encoding",
+  "kind": "encoding",
+  "description": "HLC string encoding (§4.2): {millis as 12 lowercase hex}-{counter as 4 lowercase hex}-{deviceId}, fixed width 34. The decisive property is that plain bytewise string comparison equals logical comparison, which is what lets implementations sort and range-scan HLCs as opaque strings.",
+  "encode": [
+    {
+      "description": "zero state",
+      "hlc": { "millis": 0, "counter": 0, "deviceId": "aaaaaaaaaaaaaaaa" },
+      "expected": "000000000000-0000-aaaaaaaaaaaaaaaa"
+    },
+    {
+      "description": "typical timestamp, hex is lowercase and zero-padded",
+      "hlc": { "millis": 1700000000000, "counter": 3, "deviceId": "a1b2c3d4e5f60718" },
+      "expected": "018bcfe56800-0003-a1b2c3d4e5f60718"
+    },
+    {
+      "description": "counter at its maximum, 0xFFFF",
+      "hlc": { "millis": 1700000000000, "counter": 65535, "deviceId": "a1b2c3d4e5f60718" },
+      "expected": "018bcfe56800-ffff-a1b2c3d4e5f60718"
+    },
+    {
+      "description": "maximum representable millis, 2^48 - 1",
+      "hlc": { "millis": 281474976710655, "counter": 0, "deviceId": "ffffffffffffffff" },
+      "expected": "ffffffffffff-0000-ffffffffffffffff"
+    }
+  ],
+  "compare": [
+    {
+      "description": "millis dominates counter",
+      "a": "018bcfe56800-ffff-aaaaaaaaaaaaaaaa",
+      "b": "018bd6f3d801-0000-aaaaaaaaaaaaaaaa",
+      "expected": -1
+    },
+    {
+      "description": "counter breaks ties within the same millisecond",
+      "a": "018bcfe56800-0001-aaaaaaaaaaaaaaaa",
+      "b": "018bcfe56800-0002-aaaaaaaaaaaaaaaa",
+      "expected": -1
+    },
+    {
+      "description": "deviceId is the final tiebreaker at identical (millis, counter)",
+      "a": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "b": "018bcfe56800-0000-ffffffffffffffff",
+      "expected": -1
+    },
+    {
+      "description": "identical strings compare equal",
+      "a": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "b": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "expected": 0
+    },
+    {
+      "description": "zero-padding is what makes bytewise comparison correct: without it, millis 0xff would sort after 0x100",
+      "a": "0000000000ff-0000-aaaaaaaaaaaaaaaa",
+      "b": "000000000100-0000-aaaaaaaaaaaaaaaa",
+      "expected": -1
+    }
+  ],
+  "invalid": [
+    {
+      "description": "uppercase hex is not canonical",
+      "input": "018BCFE56800-0003-a1b2c3d4e5f60718"
+    },
+    {
+      "description": "millis field too short",
+      "input": "18bd6f3d800-0003-a1b2c3d4e5f60718"
+    },
+    {
+      "description": "counter field too short",
+      "input": "018bcfe56800-003-a1b2c3d4e5f60718"
+    },
+    {
+      "description": "deviceId must be exactly 16 hex characters",
+      "input": "018bcfe56800-0003-a1b2c3d4e5f607"
+    },
+    {
+      "description": "missing separators",
+      "input": "018bcfe5680000003a1b2c3d4e5f60718"
+    }
+  ]
+}

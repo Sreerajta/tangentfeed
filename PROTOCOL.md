@@ -227,6 +227,46 @@ A sync session between two peers, over any bidirectional message channel:
 Because ops are idempotent and merge is order-independent, a peer may run
 sessions with many peers concurrently (gossip); no coordination is needed.
 
+### 6.1 Message schema
+
+Every message is a JSON object with a `t` discriminator. Implementations MUST
+ignore unknown fields and unknown `t` values (forward compatibility) rather
+than aborting the session.
+
+| `t` | Field | Type | Required | Meaning |
+|---|---|---|---|---|
+| `hello` | `v` | integer | yes | Wire version. `1` in v0.1 |
+| | `space` | string | yes | Space id. A mismatch aborts (§11 `SPACE_MISMATCH`) |
+| | `clock` | string | yes | Sender's current HLC string (§4.2) |
+| | `schemaVersion` | integer | no | Advisory only (§10). Absent means "unknown"; never a reason to refuse |
+| `since` | `have` | object | yes | Frontier: `deviceId` → highest HLC string seen from that device. `{}` means "I have nothing" |
+| `ops` | `ops` | array | yes | Zero or more ops (§3). An empty array is legal and means "nothing above your frontier" |
+| `ack` | `frontier` | object | yes | Sender's frontier after applying. Same shape as `since.have` |
+
+Notes that a second implementation needs:
+
+- **`hello` is not a handshake gate.** Both sides send it unprompted on
+  channel open; neither waits for the other's before sending `since`.
+- **The session is symmetric.** There is no client and no server. Both peers
+  run all five steps simultaneously, and a peer with nothing to send still
+  sends `since` and still replies `ack`.
+- **Catch-up completion is not signalled.** A peer knows it is caught up when
+  it has applied every op above the frontier it advertised; there is no "done"
+  message. Live tail is simply the same `ops` message continuing to arrive.
+- **`ack` is informational**, not flow control. A sender MUST NOT wait for an
+  `ack` before sending the next batch. Its purpose is to let each side learn
+  the other's frontier without a second `since` round.
+- **Batch size** is implementation-defined (recommended ≤ 500 ops or 256 KiB).
+  A receiver MUST NOT assume any particular batching, including that one
+  logical batch arrives as one message.
+- **Reconnect** re-runs steps 2–4. Because ops are idempotent, replaying
+  everything is always safe, and a peer that has lost its frontier MAY send
+  `{"t":"since","have":{}}` to request the full log.
+- **Ordering within a session** is not required. Ops may arrive in any order
+  relative to each other and merge still converges (§5).
+
+Transcript vector: `/conformance/session`.
+
 ## 7. End-to-end encryption
 
 Encryption is optional per space and invisible to the rest of the protocol:
@@ -293,11 +333,42 @@ The protocol does not mandate a storage engine; it mandates capabilities:
 - Persist ops keyed by `id`, scannable in HLC order per device.
 - Persist materialized cells keyed by `(table, row, column)`.
 - Persist the local HLC state and per-peer frontiers.
-- **8.1 Canonical JSON**: when hashing or comparing values, serialize with
-  sorted object keys, no whitespace, and shortest-form numbers.
-- **8.2 Atomic batches**: applying an op batch (log append + cell updates +
-  frontier update) MUST be all-or-nothing. A crash mid-apply must never leave
-  the log and materialized state disagreeing.
+- Applying an op batch MUST be atomic (§8.2).
+
+### 8.1 Canonical JSON
+
+Canonical JSON is **RFC 8785 (JSON Canonicalization Scheme, JCS)**. That
+specification is normative here; this section only highlights the parts
+implementations get wrong.
+
+- **Object keys** are sorted by **UTF-16 code unit**, not by Unicode code
+  point and not by UTF-8 byte. The two orders differ once non-BMP characters
+  are involved: `U+1F600` (a surrogate pair, first unit `0xD83D`) sorts
+  *before* `U+FF00`, though its code point is higher.
+- **Numbers** serialize per ECMAScript `Number::toString`: `-0` becomes `0`,
+  `1e21` becomes `1e+21`, `1e-7` becomes `1e-7`, and trailing zeros are
+  dropped. Non-finite numbers are not valid JSON and MUST be rejected.
+- **Strings** use the shortest JSON escape: `\b \t \n \f \r \" \\` where
+  available, `\u00XX` lowercase hex for other control characters, and raw
+  UTF-8 for everything else. Non-ASCII characters are NOT escaped. Lone
+  surrogates are escaped as lowercase `\udXXX`.
+- No whitespace anywhere.
+
+> In JavaScript, `JSON.stringify` combined with `Object.keys(o).sort()` already
+> produces exactly this, because JCS was written to match ECMAScript. In most
+> other languages it does not come free — in particular, sorting keys with the
+> platform's default string comparison is usually code-point or byte order and
+> will silently disagree on non-BMP keys.
+
+This matters beyond hashing: under end-to-end encryption (§7) the plaintext is
+canonical JSON, so two implementations that disagree by a single byte produce
+ciphertext the other cannot authenticate. Vectors: `/conformance/canonical`.
+
+### 8.2 Atomic batches
+
+Applying an op batch (log append + cell updates + frontier update) MUST be
+all-or-nothing. A crash mid-apply must never leave the log and materialized
+state disagreeing.
 
 ## 9. Compaction
 
@@ -402,6 +473,20 @@ cell — not the row — is the unit of conflict.
 
 ## Appendix B: Conformance
 
-A conforming implementation passes the test vectors in `/conformance` (op
-application, HLC algebra, drift rejection, tombstone semantics, canonical
-JSON). Vectors are language-neutral JSON files. (Seeded in M1.)
+A conforming implementation passes the language-neutral test vectors in
+`/conformance`. `/conformance/README.md` is the authority on what exists, what
+each vector pins down, and the ordering matrix every merge vector must be run
+through. As of v0.1 the suite covers:
+
+| Directory | Covers | Spec |
+|---|---|---|
+| `merge/` | Cell-level LWW, tiebreaks, tombstones, null and unknown columns, encrypted values | §3, §5, §10 |
+| `hlc/` | String encoding, ordering, send and receive rules, counter overflow, drift rejection | §4 |
+| `canonical/` | RFC 8785 canonicalization, including the cases that differ across languages | §8.1 |
+| `session/` | A recorded two-party session transcript | §6 |
+
+Not yet covered, and stated plainly so nobody goes looking: compaction
+outcomes (§9), which depend on peer frontiers rather than on ops alone.
+
+New implementations should start with `/conformance/IMPLEMENTING.md`, which
+sequences the work and lists the traps.

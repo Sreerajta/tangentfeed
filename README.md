@@ -236,7 +236,7 @@ op log — use `parseRow` where that distinction matters. See
 
 ```bash
 npm install
-npm test          # 195 tests across 9 packages
+npm test          # 255 tests across 9 packages
 npm run build     # every package, with type declarations
 ```
 

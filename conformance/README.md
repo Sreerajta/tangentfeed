@@ -6,7 +6,24 @@ language that passes these is interoperable with any other that does.
 This directory is the contract. `PROTOCOL.md` explains the rules in prose;
 these files pin them down as data.
 
-## Format
+**Writing an implementation or an adapter? Start with
+[IMPLEMENTING.md](./IMPLEMENTING.md)**, which sequences the work, says what to
+verify at each step, and lists the traps.
+
+## Layout
+
+| Directory | Pins down | Spec |
+|---|---|---|
+| `hlc/` | Encoding, ordering, send and receive, counter overflow, drift rejection | §4 |
+| `canonical/` | RFC 8785 canonicalization, including cases that differ across languages | §8.1 |
+| `merge/` | Cell-level LWW, tiebreaks, tombstones, null and unknown, encrypted values | §3, §5, §10 |
+| `session/` | Frontier exchange and diff between two peers | §6 |
+
+`merge/` has its own stricter contract — the ordering matrix below. The other
+directories are straightforward case lists whose shape is documented in each
+file.
+
+## Merge vector format
 
 Each file in `merge/` is a JSON object:
 
@@ -51,11 +68,15 @@ which runs the same vectors against a completely different storage engine.
 
 | File | Pins down |
 |---|---|
-| `01-concurrent-cell-edits.json` | Cell-level (not row-level) conflict resolution: concurrent edits to different columns both survive |
-| `02-same-cell-lww-tiebreak.json` | Same-cell LWW by HLC, including the deviceId tiebreak at identical timestamps |
-| `03-tombstones.json` | Deleted rows stay hidden even against later higher-HLC cell writes; un-deletion restores surviving cells |
-| `04-null-and-unknown.json` | `null` clears a cell; unknown tables/columns are preserved and forwarded (§10) |
-| `05-encrypted-values.json` | Encrypted spaces merge without decryption: a keyless peer applies LWW correctly and keeps ciphertext byte-exact |
+| `hlc/01-encoding.json` | Fixed-width lowercase hex encoding; bytewise string order equals logical order; malformed strings rejected |
+| `hlc/02-send-receive.json` | Send and receive rules, counter overflow rollover, and drift rejection at and beyond the limit |
+| `canonical/01-rfc8785.json` | RFC 8785, including UTF-16 key ordering, ECMAScript number forms, and escape choices |
+| `session/01-two-party-catchup.json` | Which ops a peer must send for a given advertised frontier, and the state both peers converge on |
+| `merge/01-concurrent-cell-edits.json` | Cell-level (not row-level) conflict resolution: concurrent edits to different columns both survive |
+| `merge/02-same-cell-lww-tiebreak.json` | Same-cell LWW by HLC, including the deviceId tiebreak at identical timestamps |
+| `merge/03-tombstones.json` | Deleted rows stay hidden even against later higher-HLC cell writes; un-deletion restores surviving cells |
+| `merge/04-null-and-unknown.json` | `null` clears a cell; unknown tables/columns are preserved and forwarded (§10) |
+| `merge/05-encrypted-values.json` | Encrypted spaces merge without decryption: a keyless peer applies LWW correctly and keeps ciphertext byte-exact |
 
 ## Note on encrypted vectors
 
@@ -75,10 +96,12 @@ ambiguous while implementing. A good vector:
 
 ## Not yet covered
 
-These rules are specified but lack vectors. Contributions welcome:
+- **Compaction outcomes (§9).** These depend on recorded peer frontiers rather
+  than on ops alone, so a vector has to describe a whole replica's history
+  rather than a batch. Contributions welcome. Until then: a replica that never
+  compacts is correct, only larger, so this does not block interoperability.
 
-- clock drift rejection (§4.5) — needs a vector format that carries a fixed
-  "current time" for the receiving implementation
-- compaction outcomes (§9), which depend on peer frontiers rather than ops alone
-- the sync session message exchange (§6), which needs a two-party harness
-  rather than a single-replica one
+Clock drift (§4.5) and the sync session (§6) were listed here and are now
+covered by `hlc/02-send-receive.json` and `session/`. The drift vectors carry
+an explicit `pt` field so the receiving implementation can be driven with a
+fixed clock instead of reading the host's.
