@@ -163,6 +163,116 @@ merging each other's operations over a real peer-to-peer connection.
 
 ---
 
+## Level 4 — your iPhone
+
+**Fifteen minutes.** This is the most valuable test, because it is the only
+one that exercises **sqflite** — the storage binding that has never run
+anywhere. The app shows which storage it is using, so you can see it.
+
+### Before you start
+
+Your **iPhone and your Mac must be on the same Wi-Fi network.** Not "the phone
+is on 5GHz and the Mac is on ethernet" — the same network.
+
+### Step 1 — find your Mac's address
+
+```bash
+ipconfig getifaddr en0
+```
+
+Write down what it prints. When this guide was written it was `192.168.0.103`;
+yours will differ. Below, wherever you see `YOUR_MAC_IP`, use that number.
+
+### Step 2 — start the signaling server, listening beyond localhost
+
+In Terminal 1:
+
+```bash
+cd ~/tangentfeed/tangentfeed-v0.1.0
+node packages/signaling-server/bin/server.mjs
+```
+
+It says `listening on ws://0.0.0.0:8787`. The `0.0.0.0` matters: it means it
+accepts connections from your phone and not only from the Mac.
+
+**Check it from the phone before going further.** In Safari on the iPhone open:
+
+```
+http://YOUR_MAC_IP:8787
+```
+
+Anything other than "cannot connect" is fine — an error page means the phone
+reached the server, which is all you need to know. If it *cannot* connect, your
+Mac's firewall is blocking it: **System Settings → Network → Firewall**, either
+turn it off or allow incoming connections for `node`.
+
+### Step 3 — plug in the iPhone and run
+
+```bash
+cd ~/tangentfeed/tangentfeed-v0.1.0/impl/flutter/example
+flutter devices
+```
+
+Your iPhone should be listed. If not: unlock it, and if it asks **Trust This
+Computer**, say yes.
+
+```bash
+flutter run -d iphone
+```
+
+The first run takes a few minutes.
+
+**On signing:** Xcode needs a free Apple ID to put an app on a real phone. If
+the build complains about signing, run `open ios/Runner.xcworkspace`, click
+**Runner** in the left sidebar, go to **Signing & Capabilities**, tick
+**Automatically manage signing**, and pick your Apple ID under Team. Then close
+Xcode and run `flutter run -d iphone` again.
+
+**On first launch the phone will ask for Local Network permission. Say yes.**
+Without it nothing will connect, and iOS only asks once.
+
+### Step 4 — connect the phone
+
+In the app on your phone:
+
+- **Signaling server:** `ws://YOUR_MAC_IP:8787` — not localhost
+- **Space:** `kitchen-42`
+- Tap **Connect**
+
+The status line should show `waiting for a peer  ·  storage: sqflite`.
+
+**`storage: sqflite` is the thing to notice.** That is the binding no test has
+ever covered.
+
+### Step 5 — the test
+
+Start a second peer on the Mac, in another terminal:
+
+```bash
+cd ~/tangentfeed/tangentfeed-v0.1.0/impl/flutter/example
+flutter run -d chrome
+```
+
+In the Chrome window set the signaling server to `ws://YOUR_MAC_IP:8787` (the
+same address the phone is using, not localhost) and the same space, then
+Connect.
+
+Both should say `synced with 1 peer(s)`.
+
+1. Add a task **on the phone**. It appears in Chrome.
+2. Tick it **in Chrome**. It ticks on the phone.
+3. **Force-quit the app on the phone** (swipe up), reopen it, tap Connect.
+   **Your tasks are still there.** That is sqflite persisting to disk — the
+   in-memory build would have come back empty.
+4. Put the phone in **Airplane Mode**. Add a task on the phone and another in
+   Chrome. Neither sees the other.
+5. Turn Airplane Mode off. **Within a few seconds both have both tasks.**
+
+Step 3 proves the storage binding. Step 5 proves offline convergence on a real
+device over a real network.
+
+---
+
 ## If something goes wrong
 
 **`flutter run -d chrome` says no devices**
@@ -187,13 +297,37 @@ Level 1 tests. Say so when you report it; it narrows the search a lot.
 
 ---
 
+## iPhone-specific problems
+
+**The app never asks for Local Network permission, and nothing connects**
+iOS asks once and remembers. Delete the app from the phone and run again, or
+**Settings → Privacy & Security → Local Network** and enable it there.
+
+**`failed: ...` right after tapping Connect**
+You used `localhost`. On the phone, localhost is the phone. Use
+`ws://YOUR_MAC_IP:8787`.
+
+**Safari on the phone cannot reach `http://YOUR_MAC_IP:8787`**
+The Mac's firewall is blocking it, or the two devices are on different
+networks. Fix that before anything else — nothing will work until that URL
+responds.
+
+**Xcode signing errors**
+`open ios/Runner.xcworkspace` → Runner → Signing & Capabilities → tick
+Automatically manage signing → choose your Apple ID. A free account works; the
+app expires after seven days, which is irrelevant for a test.
+
+---
+
 ## What this does not test
 
-Being straight with you about the gaps:
+Being straight with you about what is left:
 
-- **sqflite storage.** The example app uses in-memory storage so it can run in
-  Chrome. The SQLite adapter is tested in Level 1, but the *sqflite* binding
-  specifically has never been run. It needs `flutter run -d macos` or a phone.
-- **A real network.** Both peers are on one machine. NAT traversal, which is
-  where WebRTC actually gets hard, is untested.
-- **Phones.** Nothing here has run on iOS or Android.
+- **A real network path.** Both peers are on one Wi-Fi network, so WebRTC does
+  the easy thing and connects directly. NAT traversal between two networks —
+  where it actually gets hard, and where you would need a TURN server — is
+  untested.
+- **Android.** Nothing here has run on it. The code has no iOS-specific parts,
+  but that is an argument, not evidence.
+- **Scale.** A handful of tasks between two peers. Not thousands of operations,
+  not many peers, not compaction.

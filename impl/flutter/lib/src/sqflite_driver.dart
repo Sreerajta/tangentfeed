@@ -11,13 +11,19 @@ import 'package:tangentfeed/tangentfeed.dart';
 class SqfliteDriver implements SqliteDriver {
   SqfliteDriver(this._db);
 
-  /// Opens a database file in the platform's documents directory.
-  ///
-  /// `singleInstance` is deliberate: two handles on one file would each get
-  /// their own transaction scope, and section 8.2 needs one writer.
+  /// Opens a database at an absolute [path].
   static Future<SqfliteDriver> open(String path) async {
     final db = await sqflite.openDatabase(path, version: 1);
     return SqfliteDriver(db);
+  }
+
+  /// Opens [name] in the platform's default database directory.
+  ///
+  /// The usual entry point on a device, where you want persistence but do not
+  /// care where the file lands.
+  static Future<SqfliteDriver> openNamed(String name) async {
+    final dir = await sqflite.getDatabasesPath();
+    return open('$dir/$name');
   }
 
   final sqflite.DatabaseExecutor _db;

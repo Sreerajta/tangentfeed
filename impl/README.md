@@ -49,10 +49,14 @@ Two platform seams over the pure Dart package. Neither contains protocol logic:
 `SqliteAdapter` and `Replicator` are already tested in `dart/`, and these only
 teach them to speak sqflite and WebRTC.
 
-**Status: written and statically analysed, not run.** `flutter analyze` passes,
-so the sqflite, flutter_webrtc and web_socket_channel APIs are used correctly,
-but neither seam has been exercised on a device or simulator. Treat them as
-unproven until they have been.
+**Status: builds for web and iOS, not yet run on a device.** `flutter analyze`
+is clean, `flutter build web` and `flutter build ios` both succeed, so the
+APIs are used correctly and CocoaPods resolves the WebRTC framework. Neither
+seam has been exercised at runtime. Treat them as unproven until they have.
+
+`example/` is a runnable two-peer app, and `TESTING.md` walks through proving
+them — including the iPhone run, which is the only path that exercises
+sqflite.
 
 What to check first when you do run them:
 
