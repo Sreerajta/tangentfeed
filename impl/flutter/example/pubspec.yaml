@@ -1,0 +1,23 @@
+name: tangentfeed_example
+description: "Two-peer sync demo: run it twice, or against the browser demo."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  tangentfeed:
+    path: ../../dart
+  tangentfeed_flutter:
+    path: ..
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

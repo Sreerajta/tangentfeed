@@ -12,3 +12,5 @@ dist/
 pubspec.lock
 .flutter-plugins
 .flutter-plugins-dependencies
+build/
+.flutter-plugins*
