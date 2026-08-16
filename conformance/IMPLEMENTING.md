@@ -122,6 +122,15 @@ purposes. See `canonical/01-rfc8785.json`.
 `1e21` as `1e+21`, `1e-7` as `1e-7`. If your language prints `1.0E+21` or
 `-0`, you will produce ciphertext nobody else can authenticate.
 
+**If your language separates integers from floats, JSON does not.** This is
+the trap that actually fires first in practice, because JavaScript has one
+number type and most other languages have two. A whole-valued float must
+serialize without its fractional part: `100.0` is `100`, not `100.0`. Likewise
+`-0.0` is `0`. Confirmed in Dart, where the otherwise-correct one-liner
+`jsonEncode` emits `100.0` and `-0.0` and fails
+`canonical/01-rfc8785.json` on exactly this; the same applies to Python,
+Go, Kotlin and Swift. Special-case finite whole floats before you encode.
+
 **Frontiers are strictly above.** Given `{"aaaa...": "<hlc>"}` you send ops
 *greater than* that HLC, not greater-or-equal. Sending the named op back is a
 common off-by-one; it is harmless to correctness but doubles traffic forever.
