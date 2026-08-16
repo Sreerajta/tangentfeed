@@ -3,7 +3,7 @@ description: >-
   Flutter bindings for tangentfeed: sqflite storage and a WebRTC transport.
   The protocol itself lives in the pure Dart package and is not repeated here.
 version: 0.1.0
-publish_to: none
+repository: https://github.com/Sreerajta/tangentfeed
 
 environment:
   sdk: ^3.5.0
@@ -12,8 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  tangentfeed:
-    path: ../dart
+  tangentfeed: ^0.1.0
   sqflite: ^2.3.0
   flutter_webrtc: ^0.12.0
   web_socket_channel: ^3.0.0
@@ -22,3 +21,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+
+# tangentfeed is not on pub.dev yet, and a path dependency would block
+# publishing this package. The override applies while developing here and is
+# ignored by anyone who depends on this package.
+dependency_overrides:
+  tangentfeed:
+    path: ../dart

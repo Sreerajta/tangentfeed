@@ -3,7 +3,7 @@ description: >-
   Offline-first, peer-to-peer data sync. Dart implementation of the tangentfeed
   protocol, validated by the shared conformance vectors.
 version: 0.1.0
-publish_to: none
+repository: https://github.com/Sreerajta/tangentfeed
 
 environment:
   sdk: ^3.5.0

@@ -22,6 +22,7 @@ export 'src/op.dart'
         maxBatchOps,
         maxOpBytes,
         tombstoneColumn;
+export 'src/space.dart' show Space, TransportFactory, openSpace;
 export 'src/sqlite.dart' show SqliteAdapter, SqliteDriver;
 export 'src/storage.dart' show BatchWrite, CellKey, MemoryAdapter, StorageAdapter;
 export 'src/ulid.dart' show ulid;

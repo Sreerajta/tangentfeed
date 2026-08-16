@@ -9,6 +9,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  tangentfeed: ^0.1.0
+  tangentfeed_flutter:
+    path: ..
+
+# Neither package is on pub.dev yet, so the whole tree resolves from source.
+# Overrides only take effect in the root package, which is why this repeats
+# what tangentfeed_flutter already declares for itself.
+dependency_overrides:
   tangentfeed:
     path: ../../dart
   tangentfeed_flutter:

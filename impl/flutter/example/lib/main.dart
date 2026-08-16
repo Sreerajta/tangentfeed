@@ -38,9 +38,7 @@ class _TaskPageState extends State<TaskPage> {
   final _space = TextEditingController(text: 'kitchen-42');
   final _input = TextEditingController();
 
-  SyncEngine? _engine;
-  WebRTCTransport? _transport;
-  Replicator? _replicator;
+  Space? _db;
 
   List<RowData> _rows = const [];
   String _status = 'not connected';
@@ -49,51 +47,48 @@ class _TaskPageState extends State<TaskPage> {
   bool _connecting = false;
 
   Future<void> _connect() async {
-    if (_connecting || _engine != null) return;
+    if (_connecting || _db != null) return;
     setState(() {
       _connecting = true;
       _status = 'connecting…';
     });
 
     try {
-      final deviceId = generateDeviceId();
       final space = _space.text.trim();
+      final signaling = _signaling.text.trim();
 
       // The whole point of the driver seam: identical engine either side.
-      final StorageAdapter storage;
-      if (kIsWeb) {
-        storage = MemoryAdapter();
-      } else {
-        storage = await SqliteAdapter.open(
-          await SqfliteDriver.openNamed('tangentfeed_$space.db'),
-        );
-      }
+      final StorageAdapter storage = kIsWeb
+          ? MemoryAdapter()
+          : await SqliteAdapter.open(
+              await SqfliteDriver.openNamed('tangentfeed_$space.db'),
+            );
 
-      final engine = await SyncEngine.open(deviceId: deviceId, storage: storage);
-
-      final transport = WebRTCTransport(
+      // No deviceId here on purpose. It is derived from storage and persisted,
+      // so a restart keeps this replica's identity instead of minting a new
+      // one and leaving a phantom device in every peer's frontier.
+      final db = await openSpace(
         space: space,
-        deviceId: deviceId,
-        signalingUrl: _signaling.text.trim(),
-      );
-
-      final replicator = Replicator(
-        engine: engine,
-        transport: transport,
-        space: space,
+        storage: storage,
         onError: (e, {peer}) => _setStatus('error: $e'),
+        transports: [
+          ({required space, required deviceId}) async {
+            final transport = WebRTCTransport(
+              space: space,
+              deviceId: deviceId,
+              signalingUrl: signaling,
+            );
+            await transport.start();
+            return transport;
+          },
+        ],
       );
 
-      engine.subscribe((_) => _refresh());
-
-      await transport.start();
-      await replicator.start();
+      db.subscribe((_) => _refresh());
 
       setState(() {
-        _engine = engine;
-        _transport = transport;
-        _replicator = replicator;
-        _deviceId = deviceId;
+        _db = db;
+        _deviceId = db.deviceId;
         _connecting = false;
         _status = 'waiting for a peer';
       });
@@ -112,8 +107,8 @@ class _TaskPageState extends State<TaskPage> {
   void _pollPeers() {
     Future.doWhile(() async {
       await Future<void>.delayed(const Duration(seconds: 1));
-      if (!mounted || _transport == null) return false;
-      final peers = _transport!.connectedPeers;
+      if (!mounted || _db == null) return false;
+      final peers = _db!.peers();
       _setStatus(peers.isEmpty
           ? 'waiting for a peer'
           : 'synced with ${peers.length} peer(s)');
@@ -126,34 +121,33 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   Future<void> _refresh() async {
-    final engine = _engine;
-    if (engine == null) return;
-    final rows = await engine.list('tasks');
+    final db = _db;
+    if (db == null) return;
+    final rows = await db.list('tasks');
     if (mounted) setState(() => _rows = rows);
   }
 
   Future<void> _add() async {
     final title = _input.text.trim();
-    if (title.isEmpty || _engine == null) return;
+    if (title.isEmpty || _db == null) return;
     _input.clear();
-    await _engine!.insert('tasks', {'title': title, 'done': false});
+    await _db!.insert('tasks', {'title': title, 'done': false});
     await _refresh();
   }
 
   Future<void> _toggle(RowData row) async {
-    await _engine!.update('tasks', row['id']! as String, {'done': row['done'] != true});
+    await _db!.update('tasks', row['id']! as String, {'done': row['done'] != true});
     await _refresh();
   }
 
   Future<void> _delete(RowData row) async {
-    await _engine!.delete('tasks', row['id']! as String);
+    await _db!.delete('tasks', row['id']! as String);
     await _refresh();
   }
 
   @override
   void dispose() {
-    _replicator?.stop();
-    _transport?.close();
+    _db?.close();
     _signaling.dispose();
     _space.dispose();
     _input.dispose();
@@ -162,7 +156,7 @@ class _TaskPageState extends State<TaskPage> {
 
   @override
   Widget build(BuildContext context) {
-    final connected = _engine != null;
+    final connected = _db != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('tangentfeed')),
