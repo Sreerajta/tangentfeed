@@ -6,7 +6,7 @@ others, validated by the same `conformance/` vectors.
 | Directory | What it is | Verification |
 |---|---|---|
 | `dart/` | The protocol in Dart. Pure, no Flutter dependency | 118 tests against the shared vectors |
-| `flutter/` | Platform seams: sqflite storage, WebRTC transport | Transport verified iPhone ↔ browser; storage partly — see below |
+| `flutter/` | Platform seams: sqflite storage, WebRTC transport | Both verified on an iPhone against a browser peer — see below |
 
 ## dart/
 
@@ -68,17 +68,19 @@ Untested: peers on *different* networks. Both were on one hotspot, so ICE
 found a direct path and never had to traverse a NAT, which is where WebRTC
 actually gets hard and where a TURN server becomes necessary.
 
-### Storage — partly verified
+### Storage — verified on hardware
 
 The iPhone run used `SqfliteDriver` throughout, so every read, write and merge
-in that session went through sqflite, including the operations queued while
+in that session went through sqflite, including operations queued while
 offline.
 
-Not yet confirmed: **durability across a process restart.** Nothing has proven
-the data is on disk rather than merely in a page cache that happened to
-outlive nothing. Force-quitting the app and finding the tasks still there is
-the test, and it takes twenty seconds.
+Durability was settled by a task that existed **only on the phone** — the Mac
+peer had never received it. After the app was quit and relaunched the task was
+still there, and since no peer could have supplied it, disk is the only place
+it came from. It survived a reinstall rather than merely a relaunch, because
+`flutter run` reinstalls and iOS preserves the data container across that.
 
-Also still open: that a batch interrupted partway leaves the log and the
+Still open: that a batch interrupted partway leaves the log and the
 materialized cells agreeing. `dart/test/sqlite_test.dart` proves it against
-package:sqlite3 with an injected failure; the sqflite path has no equivalent.
+package:sqlite3 with an injected failure; the sqflite path has no equivalent,
+and it is the guarantee that matters most when a phone dies mid-write.
