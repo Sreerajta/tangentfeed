@@ -5,3 +5,8 @@ dist/
 
 # agent worktrees
 .claude/
+
+# dart
+.dart_tool/
+.packages
+pubspec.lock
