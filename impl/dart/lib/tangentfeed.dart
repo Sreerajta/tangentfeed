@@ -9,6 +9,9 @@ export 'src/canonical.dart' show canonicalJson;
 export 'src/cipher.dart' show DecryptError, SpaceCipher, cipherPrefix, isEncryptedValue;
 export 'src/engine.dart'
     show ChangeEvent, RowChange, RowData, SyncEngine, generateDeviceId;
+export 'src/loopback.dart' show LoopbackTransport;
+export 'src/replicator.dart'
+    show Replicator, Transport, opsPerMessage, syncOnce, wireVersion;
 export 'src/op.dart'
     show
         BadOpError,
