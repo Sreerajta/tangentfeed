@@ -11,6 +11,7 @@ environment:
 dev_dependencies:
   test: ^1.25.0
   lints: ^4.0.0
+  sqlite3: ^3.5.1
 dependencies:
   cryptography: ^2.9.0
   pointycastle: ^4.0.0

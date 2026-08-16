@@ -19,6 +19,7 @@ export 'src/op.dart'
         maxBatchOps,
         maxOpBytes,
         tombstoneColumn;
+export 'src/sqlite.dart' show SqliteAdapter, SqliteDriver;
 export 'src/storage.dart' show BatchWrite, CellKey, MemoryAdapter, StorageAdapter;
 export 'src/ulid.dart' show ulid;
 export 'src/hlc.dart'
