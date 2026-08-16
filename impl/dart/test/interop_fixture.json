@@ -1,0 +1,111 @@
+{
+  "description": "Envelopes produced by the TypeScript implementation. A Dart peer must decrypt every one, and must fail to decrypt aadMismatch under the wrong op id.",
+  "secret": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "cases": [
+    {
+      "value": "hello",
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:s/rjPYZitaMJ4Umy4qsdkXCYyR7OE01e23kwWJIcV8yNfZYEcQTN67LbZaAfXHU="
+    },
+    {
+      "value": 42,
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:DLLxGMgOwMfUTgsxWzqmgJiNxgW/PYSZs6GK+wbGMR1SQ859Ul8MCTV8"
+    },
+    {
+      "value": true,
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:yPh41UQts/HDwBZvKG2sSEGE4Osd4rPSsAPn/YT2Z0Ozq6oZN0g9StLGbr8="
+    },
+    {
+      "value": null,
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:s9z13GHNNa5IFl/Y7ODfzozAa6Vphl1EH5Khf1Z4UXXEhH3pVGyznZg7ln8="
+    },
+    {
+      "value": {
+        "b": 1,
+        "a": [
+          1,
+          2,
+          {
+            "z": "x"
+          }
+        ]
+      },
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:gIIGcQAZzyLJkbo2IzNKD3dkpKUbpqmfjkzTfkFNhr3ESeSWU77coLfRABRIotz8enBIy8HwyoBR68QxFqt3TStj2w=="
+    },
+    {
+      "value": [
+        "nested",
+        {
+          "deep": {
+            "deeper": 3.5
+          }
+        }
+      ],
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:p2tLXoEYwMm3OSQXRp75iHsw2aAo3gbTpGX1RLSwA74075lxlM0lQsn0S1jE9JW63rJxSNwv9TW9SZngLYGqtxibmrkEqavkaPQ="
+    },
+    {
+      "value": "unicode: é 日本 😀",
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:gV/wtVUyCdPr0WkLG5nHIhoTkXrp+M+4R/MnrwyudwxlnJ91GypejKFUbXwebMG3s02B9Dz1nGvA943xi2izz+4="
+    },
+    {
+      "value": "",
+      "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "envelope": "e1:aDRLWdQFmEyvsIv55o1YHkDIlDM3+kkYO65O6ctHO9UpyzyAWrFPU3Jl"
+    }
+  ],
+  "aadMismatch": {
+    "value": "hello",
+    "opId": "018bcfe56801-0000-aaaaaaaaaaaaaaaa",
+    "envelope": "e1:Ba9DISWdakMc1MCTCYYC383YR7V2qN2NpWh7ehop2CC8HmjCxc9VBUrtH9qUYYE=",
+    "wrongOpId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa"
+  },
+  "passphrase": {
+    "passphrase": "correct horse battery staple",
+    "space": "kitchen-42",
+    "value": {
+      "note": "derived from a passphrase",
+      "n": 7
+    },
+    "opId": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+    "envelope": "e1:E/OgBjbYCDJKvJNNtK7BcO+gnOSQC6FAYxeUkj9bFSlJ8A/NSpBmH2qHeGwdIK17jvfYyptm4xE++x+HWExuGtOcOTn+yIp1urOnZZM2npvuUw=="
+  }
+}
