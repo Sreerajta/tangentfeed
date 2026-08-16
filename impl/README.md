@@ -6,7 +6,7 @@ others, validated by the same `conformance/` vectors.
 | Directory | What it is | Verification |
 |---|---|---|
 | `dart/` | The protocol in Dart. Pure, no Flutter dependency | 118 tests against the shared vectors |
-| `flutter/` | Platform seams: sqflite storage, WebRTC transport | Static analysis only — see below |
+| `flutter/` | Platform seams: sqflite storage, WebRTC transport | Transport verified iPhone ↔ browser; storage partly — see below |
 
 ## dart/
 
@@ -49,21 +49,36 @@ Two platform seams over the pure Dart package. Neither contains protocol logic:
 `SqliteAdapter` and `Replicator` are already tested in `dart/`, and these only
 teach them to speak sqflite and WebRTC.
 
-**Status: builds for web and iOS, not yet run on a device.** `flutter analyze`
-is clean, `flutter build web` and `flutter build ios` both succeed, so the
-APIs are used correctly and CocoaPods resolves the WebRTC framework. Neither
-seam has been exercised at runtime. Treat them as unproven until they have.
+`example/` is a runnable two-peer app; `TESTING.md` walks through proving both
+seams, including the iPhone run.
 
-`example/` is a runnable two-peer app, and `TESTING.md` walks through proving
-them — including the iPhone run, which is the only path that exercises
-sqflite.
+### Transport — verified on hardware
 
-What to check first when you do run them:
+An iPhone and a desktop browser, both running this code, synced over real
+WebRTC DataChannels through the signaling relay:
 
-- **Storage** — that a batch interrupted partway leaves the log and the
-  materialized cells agreeing. `dart/test/sqlite_test.dart` has that test
-  against package:sqlite3; the sqflite path deserves the same.
-- **Transport** — that a Dart peer and a browser peer actually converge. The
-  transport is wire-compatible by construction: same signaling messages, same
-  `tangentfeed` DataChannel label, same rule that the lower deviceId initiates.
-  Construction is not evidence.
+- writes propagated in both directions
+- updates to an existing row propagated in both directions
+- the phone went offline, both sides wrote, and they converged on reconnect
+
+That last one is the claim the whole design rests on, and it is no longer
+theoretical.
+
+Untested: peers on *different* networks. Both were on one hotspot, so ICE
+found a direct path and never had to traverse a NAT, which is where WebRTC
+actually gets hard and where a TURN server becomes necessary.
+
+### Storage — partly verified
+
+The iPhone run used `SqfliteDriver` throughout, so every read, write and merge
+in that session went through sqflite, including the operations queued while
+offline.
+
+Not yet confirmed: **durability across a process restart.** Nothing has proven
+the data is on disk rather than merely in a page cache that happened to
+outlive nothing. Force-quitting the app and finding the tasks still there is
+the test, and it takes twenty seconds.
+
+Also still open: that a batch interrupted partway leaves the log and the
+materialized cells agreeing. `dart/test/sqlite_test.dart` proves it against
+package:sqlite3 with an injected failure; the sqflite path has no equivalent.
