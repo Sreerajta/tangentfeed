@@ -175,15 +175,14 @@ See `apps/node-demo`.
 
 ## Site and documentation
 
-The landing page and full documentation live in `site/`, built to static files:
+The landing page and full documentation live in their own repository,
+[tangentfeed-website](https://github.com/Sreerajta/tangentfeed-website), and are
+published at [tangentfeed.com](https://tangentfeed.com).
 
-```bash
-npm run site      # → site/dist
-```
-
-The landing page hero runs two real replicas in the browser, bundled from this
-workspace, so the demo cannot drift from the library. Deploy configs for GitHub
-Pages and Netlify are included.
+They were split out because the site has its own release cadence and its own
+deployment, and keeping a second copy of the source here only invited drift.
+The landing page hero still runs two real replicas in the browser, bundled from
+this library's source, so the demo cannot diverge from what it demonstrates.
 
 ## Demos
 
