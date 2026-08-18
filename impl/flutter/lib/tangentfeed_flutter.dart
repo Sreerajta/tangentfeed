@@ -7,3 +7,5 @@ library;
 
 export 'src/sqflite_driver.dart' show SqfliteDriver;
 export 'src/webrtc_transport.dart' show WebRTCTransport;
+export 'src/widgets.dart'
+    show PeersBuilder, RowBuilder, RowsBuilder, TangentfeedScope;

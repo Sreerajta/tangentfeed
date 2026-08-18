@@ -6,6 +6,8 @@
 /// the common case is one call rather than seven.
 library;
 
+import 'dart:async';
+
 import 'engine.dart';
 import 'op.dart';
 import 'replicator.dart';
@@ -49,6 +51,62 @@ class Space {
   /// Called after every committed change, local or remote. Returns an
   /// unsubscribe function.
   void Function() subscribe(void Function(ChangeEvent) cb) => engine.subscribe(cb);
+
+  /// Every visible row in [table], re-emitted whenever that table changes.
+  ///
+  /// Emits the current contents immediately on listen, so a UI has something
+  /// to paint on first frame. Changes to other tables do not wake it.
+  ///
+  /// ```dart
+  /// StreamBuilder(
+  ///   stream: db.watch('tasks'),
+  ///   builder: (context, snapshot) => …,
+  /// )
+  /// ```
+  Stream<List<RowData>> watch(String table) =>
+      _watch(() => list(table), (event) => event.changes.any((c) => c.table == table));
+
+  /// One row, or null when it is absent or deleted.
+  Stream<RowData?> watchRow(String table, String row) => _watch(
+        () => get(table, row),
+        (event) => event.changes.any((c) => c.table == table && c.row == row),
+      );
+
+  /// Shared plumbing: read once on listen, then again on every matching event.
+  ///
+  /// Reads are serialized behind [_pending] because they are async and a burst
+  /// of changes would otherwise race, letting a stale read land last and leave
+  /// the UI showing data older than what is stored.
+  Stream<T> _watch<T>(Future<T> Function() read, bool Function(ChangeEvent) matches) {
+    late StreamController<T> controller;
+    void Function()? unsubscribe;
+    Future<void> pending = Future.value();
+
+    void schedule() {
+      pending = pending.then((_) async {
+        if (controller.isClosed) return;
+        final value = await read();
+        if (!controller.isClosed) controller.add(value);
+      }).catchError((Object e, StackTrace s) {
+        if (!controller.isClosed) controller.addError(e, s);
+      });
+    }
+
+    controller = StreamController<T>(
+      onListen: () {
+        unsubscribe = subscribe((event) {
+          if (matches(event)) schedule();
+        });
+        schedule();
+      },
+      onCancel: () {
+        unsubscribe?.call();
+        unsubscribe = null;
+      },
+    );
+
+    return controller.stream;
+  }
 
   // ---------- sync ----------
 
