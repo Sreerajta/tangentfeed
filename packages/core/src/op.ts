@@ -3,6 +3,7 @@
  */
 
 import { decodeHlc } from "./hlc.js";
+import { SIGNING_DOMAIN, canonicalJson, verifyPayload } from "./signing.js";
 
 /** JSON-representable value. */
 export type Json =
@@ -22,6 +23,8 @@ export interface Op {
   readonly column: string; // name or "-"
   readonly value: Json;
   readonly hlc: string;
+  /** Base64 Ed25519 signature over signedPayload(op). §12. */
+  readonly sig: string;
   readonly device: string;
 }
 
@@ -44,7 +47,7 @@ export const MAX_BATCH_OPS = 1000;
 export function validateOp(op: unknown): asserts op is Op {
   if (typeof op !== "object" || op === null) throw new BadOpError("not an object");
   const o = op as Record<string, unknown>;
-  for (const f of ["id", "table", "row", "column", "hlc", "device"]) {
+  for (const f of ["id", "table", "row", "column", "hlc", "device", "sig"]) {
     if (typeof o[f] !== "string") throw new BadOpError(`field ${f} must be a string`);
   }
   if (!("value" in o)) throw new BadOpError("missing value");
@@ -100,4 +103,24 @@ export function advanceFrontier(frontier: Frontier, op: Op): Frontier {
   const seen = frontier[op.device];
   if (seen !== undefined && seen >= op.hlc) return frontier;
   return { ...frontier, [op.device]: op.hlc };
+}
+
+/**
+ * The exact bytes a signature covers: the domain, then the canonical JSON of
+ * every field except `sig` itself.
+ *
+ * `sig` is excluded because including it would require knowing the signature
+ * before computing it. Excluding it also means a verifier reconstructs the
+ * payload from the op it received, with no separate encoding to agree on.
+ */
+export function signedPayload(op: Omit<Op, "sig"> | Op): Uint8Array {
+  const { id, table, row, column, value, hlc, device } = op;
+  return new TextEncoder().encode(
+    SIGNING_DOMAIN + canonicalJson({ id, table, row, column, value, hlc, device }),
+  );
+}
+
+/** Whether `op.sig` is a valid signature by `publicKey`. §12. */
+export function verifyOp(op: Op, publicKey: Uint8Array): boolean {
+  return verifyPayload(signedPayload(op), op.sig, publicKey);
 }

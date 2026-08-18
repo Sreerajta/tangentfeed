@@ -27,6 +27,7 @@ import {
   type BatchWrite,
   type ClockState,
   type CompactionWrite,
+  type DeviceKey,
   type Frontier,
   type Op,
   type StorageAdapter,
@@ -129,6 +130,22 @@ export class IdbAdapter implements StorageAdapter {
   async getClock(): Promise<ClockState | undefined> {
     const tx = this.db.transaction("meta", "readonly");
     return promisifyRequest<ClockState | undefined>(tx.objectStore("meta").get("clock"));
+  }
+
+  // ---------- signing identity (§12) ----------
+
+  // Stored as raw Uint8Arrays: structured clone handles typed arrays, so there
+  // is nothing to encode and nothing to get wrong on the way back out.
+
+  async getDeviceKey(): Promise<DeviceKey | undefined> {
+    const tx = this.db.transaction("meta", "readonly");
+    return promisifyRequest<DeviceKey | undefined>(tx.objectStore("meta").get("deviceKey"));
+  }
+
+  async setDeviceKey(key: DeviceKey): Promise<void> {
+    const tx = this.db.transaction("meta", "readwrite");
+    tx.objectStore("meta").put({ publicKey: key.publicKey, privateKey: key.privateKey }, "deviceKey");
+    await txDone(tx);
   }
 
   // ---------- compaction support (§9) ----------

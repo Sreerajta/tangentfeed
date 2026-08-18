@@ -13,11 +13,19 @@ import {
   MAX_BATCH_OPS,
   TOMBSTONE_COLUMN,
   advanceFrontier,
+  signedPayload,
   validateOp,
+  verifyOp,
   type Frontier,
   type Json,
   type Op,
 } from "./op.js";
+import {
+  deviceIdFromPublicKey,
+  generateDeviceKey,
+  signPayload,
+  type DeviceKey,
+} from "./signing.js";
 import { cellKey, type StorageAdapter } from "./storage.js";
 import {
   blockingPeers,
@@ -46,7 +54,6 @@ export interface ChangeEvent {
 export type Subscriber = (event: ChangeEvent) => void;
 
 export interface EngineOptions {
-  deviceId: string;
   storage: StorageAdapter;
   physicalClock?: () => number;
   /**
@@ -65,24 +72,63 @@ export class SyncEngine {
   private readonly clock: HybridLogicalClock;
   private readonly cipher: Cipher | undefined;
   private readonly subscribers = new Set<Subscriber>();
+  private readonly deviceKey: DeviceKey;
+  /** deviceId -> public key. Seeded with our own so we can verify our own ops. */
+  private readonly keys = new Map<string, Uint8Array>();
   /** serializes all mutations; JS is single-threaded but ops are async */
   private mutex: Promise<unknown> = Promise.resolve();
 
-  private constructor(opts: EngineOptions, clock: HybridLogicalClock) {
-    this.deviceId = opts.deviceId;
+  private constructor(opts: EngineOptions, clock: HybridLogicalClock, key: DeviceKey) {
+    this.deviceId = clock.deviceId;
     this.storage = opts.storage;
     this.clock = clock;
     this.cipher = opts.cipher;
+    this.deviceKey = key;
+    this.keys.set(clock.deviceId, key.publicKey);
   }
 
+  /** This device's public key, for the `hello` message. Section 6.1. */
+  get publicKey(): Uint8Array {
+    return this.deviceKey.publicKey;
+  }
+
+  /** Every device key known to this replica, for the `keys` message. */
+  knownKeys(): ReadonlyMap<string, Uint8Array> {
+    return new Map(this.keys);
+  }
+
+  /**
+   * Records a peer's public key.
+   *
+   * Returns false when the key does not hash to the claimed id. That check is
+   * what makes the directory self-validating: a peer can relay keys it learned
+   * from others, but cannot invent one for somebody else.
+   */
+  learnKey(deviceId: string, publicKey: Uint8Array): boolean {
+    if (deviceIdFromPublicKey(publicKey) !== deviceId) return false;
+    this.keys.set(deviceId, publicKey);
+    return true;
+  }
+
+  /**
+   * Opens a replica. Identity comes from the stored keypair, so a restart keeps
+   * the same device rather than minting a new one. Section 4.3.
+   */
   static async open(opts: EngineOptions): Promise<SyncEngine> {
+    let key = await opts.storage.getDeviceKey();
+    if (!key) {
+      // Claim the identity before any data op, so it survives being killed early.
+      key = generateDeviceKey();
+      await opts.storage.setDeviceKey(key);
+    }
+
     const persisted = await opts.storage.getClock();
     const clock = new HybridLogicalClock({
-      deviceId: opts.deviceId,
+      deviceId: deviceIdFromPublicKey(key.publicKey),
       ...(opts.physicalClock ? { physicalClock: opts.physicalClock } : {}),
       ...(persisted ? { millis: persisted.millis, counter: persisted.counter } : {}),
     });
-    return new SyncEngine(opts, clock);
+    return new SyncEngine(opts, clock, key);
   }
 
   // ---------- reads ----------
@@ -167,6 +213,19 @@ export class SyncEngine {
     }
     for (const op of remoteOps) validateOp(op);
     const ops = remoteOps as readonly Op[];
+
+    // Signature first: an unauthenticated peer must not be able to provoke a
+    // clock error, and a forged op must never reach storage. Section 12.
+    for (const op of ops) {
+      const publicKey = this.keys.get(op.device);
+      if (!publicKey) {
+        throw new BadOpError(`unknown device ${op.device}; no key to verify against`);
+      }
+      if (!verifyOp(op, publicKey)) {
+        throw new BadOpError(`bad signature on op ${op.id}`);
+      }
+    }
+
     return this.locked(async () => {
       // Advance our clock past the newest remote timestamp; §4.5 drift check
       // happens inside receive(). Checking the max op covers the whole batch.
@@ -268,7 +327,13 @@ export class SyncEngine {
     // decrypt. Everything else is encrypted before it enters the log.
     const stored =
       this.cipher && column !== TOMBSTONE_COLUMN ? this.cipher.encrypt(value, hlc) : value;
-    const op: Op = { id: hlc, table, row, column, value: stored, hlc, device: this.deviceId };
+    // Encrypt-then-sign: `stored` is already the ciphertext, so a keyless peer
+    // can still verify everything it forwards. Section 12.
+    const unsigned = { id: hlc, table, row, column, value: stored, hlc, device: this.deviceId };
+    const op: Op = {
+      ...unsigned,
+      sig: signPayload(signedPayload(unsigned), this.deviceKey.privateKey),
+    };
     validateOp(op); // reject bad names/values before they enter the log
     return op;
   }

@@ -21,7 +21,6 @@
 import {
   Replicator,
   SyncEngine,
-  generateDeviceId,
   type ChangeEvent,
   type Frontier,
   type Json,
@@ -58,15 +57,6 @@ export interface OpenSpaceOptions<S extends SchemaShape | undefined = undefined>
   /** Logical database name; peers only sync within the same space. */
   space: string;
   /**
-   * Stable identity for this replica. Defaults to a fresh random id, which is
-   * right for ephemeral clients. Persist it yourself (and pass it back) if you
-   * want a device to keep its identity across reloads.
-   *
-   * Note: two live replicas MUST NOT share a deviceId. Beware of copying it
-   * into sessionStorage, which browsers duplicate along with the tab.
-   */
-  deviceId?: string;
-  /**
    * "indexeddb" (default in browsers), "memory", or any StorageAdapter.
    *
    * For SQLite, construct the adapter yourself and pass it here — the driver
@@ -82,6 +72,15 @@ export interface OpenSpaceOptions<S extends SchemaShape | undefined = undefined>
    *   });
    */
   storage?: "indexeddb" | "memory" | StorageAdapter;
+  /**
+   * Names the local database when several replicas share one origin — two
+   * browser tabs syncing with each other, for instance.
+   *
+   * This is not an identity. Identity is a keypair held inside the database
+   * (§4.3); this only decides which database to open. Callers that supply
+   * their own storage adapter never need it.
+   */
+  replica?: string;
   /** Zero or more transports. Omit for a purely local database. */
   transports?: TransportFactory[];
   /** End-to-end encryption. Every peer in the space needs the same secret. */
@@ -156,14 +155,14 @@ export function openSpace(opts: OpenSpaceOptions<undefined>): Promise<SyncedSpac
 export async function openSpace<S extends SchemaShape | undefined = undefined>(
   opts: OpenSpaceOptions<S>,
 ): Promise<SyncedSpace<S>> {
-  const deviceId = opts.deviceId ?? generateDeviceId();
   const space = opts.space;
 
-  const storage = await resolveStorage(opts.storage, space, deviceId);
+  const storage = await resolveStorage(opts.storage, space, opts.replica ?? "default");
   const cipher = await resolveCipher(opts.encryption, space);
 
+  // No deviceId: the engine derives it from the stored keypair, so a restart
+  // keeps this replica's identity. Section 4.3.
   const engine = await SyncEngine.open({
-    deviceId,
     storage,
     ...(cipher ? { cipher } : {}),
   });
@@ -171,7 +170,7 @@ export async function openSpace<S extends SchemaShape | undefined = undefined>(
   const transports: Transport[] = [];
   const replicators: Replicator[] = [];
   for (const make of opts.transports ?? []) {
-    const transport = await make({ space, deviceId });
+    const transport = await make({ space, deviceId: engine.deviceId });
     transports.push(transport);
     const replicator = new Replicator({
       engine,
@@ -187,7 +186,7 @@ export async function openSpace<S extends SchemaShape | undefined = undefined>(
 
   return {
     space,
-    deviceId,
+    deviceId: engine.deviceId,
     engine,
     // `async` is load-bearing: validation throws synchronously, and these
     // methods are declared to return a Promise. Without it a SchemaError would
@@ -290,12 +289,12 @@ export function existing(transport: Transport): TransportFactory {
 async function resolveStorage(
   storage: OpenSpaceOptions["storage"],
   space: string,
-  deviceId: string,
+  replica: string,
 ): Promise<StorageAdapter> {
   if (storage && typeof storage !== "string") return storage;
   if (storage === "memory") return new MemoryAdapter();
   if (storage === "indexeddb" || storage === undefined) {
-    if (globalThis.indexedDB) return IdbAdapter.open(`${space}:${deviceId}`);
+    if (globalThis.indexedDB) return IdbAdapter.open(`${space}:${replica}`);
     if (storage === "indexeddb") {
       throw new Error("IndexedDB is not available in this environment");
     }
@@ -319,7 +318,6 @@ export {
   SyncEngine,
   Replicator,
   MemoryAdapter,
-  generateDeviceId,
   type ChangeEvent,
   type Frontier,
   type Json,

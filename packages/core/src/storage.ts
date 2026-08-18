@@ -6,6 +6,7 @@
  * reference used by tests; IndexedDB/SQLite adapters come in M2+.
  */
 
+import type { DeviceKey } from "./signing.js";
 import type { Frontier, Op } from "./op.js";
 
 export interface ClockState {
@@ -46,6 +47,16 @@ export interface StorageAdapter {
   opsSince(frontier: Frontier): Promise<Op[]>;
   getFrontier(): Promise<Frontier>;
   getClock(): Promise<ClockState | undefined>;
+
+  /**
+   * The device's signing keypair, or undefined on a fresh store. Section 12.
+   *
+   * Stored in the clear beside the data it protects. On a device this belongs
+   * in Keychain or Keystore; recorded as follow-up rather than solved here,
+   * since the space secret already carries the same exposure.
+   */
+  getDeviceKey(): Promise<DeviceKey | undefined>;
+  setDeviceKey(key: DeviceKey): Promise<void>;
   /** Atomic, all-or-nothing. §8.2. */
   applyBatch(batch: BatchWrite): Promise<void>;
 
@@ -74,6 +85,7 @@ export class MemoryAdapter implements StorageAdapter {
   private tables = new Map<string, Map<string, Map<string, Op>>>();
   private frontier: Frontier = {};
   private clock: ClockState | undefined;
+  private deviceKey: DeviceKey | undefined;
   private peerFrontiers: Record<string, Frontier> = {};
 
   async getRow(table: string, row: string): Promise<ReadonlyMap<string, Op> | undefined> {
@@ -108,6 +120,14 @@ export class MemoryAdapter implements StorageAdapter {
 
   async getFrontier(): Promise<Frontier> {
     return this.frontier;
+  }
+
+  async getDeviceKey(): Promise<DeviceKey | undefined> {
+    return this.deviceKey;
+  }
+
+  async setDeviceKey(key: DeviceKey): Promise<void> {
+    this.deviceKey = key;
   }
 
   async getClock(): Promise<ClockState | undefined> {
