@@ -63,3 +63,12 @@ export {
   type CompactionStats,
 } from "./compaction.js";
 export type { CompactionWrite } from "./storage.js";
+export {
+  SIGNING_DOMAIN,
+  canonicalJson,
+  deviceIdFromPublicKey,
+  generateDeviceKey,
+  signPayload,
+  verifyPayload,
+  type DeviceKey,
+} from "./signing.js";

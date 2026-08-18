@@ -8,16 +8,16 @@
     "build": "tsup src/index.ts --format esm --dts --clean"
   },
   "dependencies": {
-    "@tangentfeed/core": "0.1.0",
     "@noble/ciphers": "^2.0.0",
-    "@noble/hashes": "^2.0.0"
+    "@noble/hashes": "^2.0.0",
+    "@tangentfeed/core": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "fast-check": "^3.19.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "tsup": "^8.5.0"
+    "vitest": "^2.0.0"
   },
   "description": "End-to-end encryption for tangentfeed (XChaCha20-Poly1305)",
   "license": "MIT",

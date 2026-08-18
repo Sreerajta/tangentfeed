@@ -10,9 +10,9 @@
   "devDependencies": {
     "@types/node": "^26.1.1",
     "fast-check": "^3.19.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "tsup": "^8.5.0"
+    "vitest": "^2.0.0"
   },
   "description": "Protocol engine for tangentfeed: HLC, cell-level LWW oplog, replication. Zero dependencies.",
   "license": "MIT",
@@ -31,5 +31,9 @@
   "files": [
     "dist",
     "README.md"
-  ]
+  ],
+  "dependencies": {
+    "@noble/curves": "^2.3.0",
+    "@noble/hashes": "^2.3.0"
+  }
 }
