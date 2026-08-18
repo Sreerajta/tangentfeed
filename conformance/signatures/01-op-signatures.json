@@ -1,0 +1,209 @@
+{
+  "name": "op-signatures",
+  "description": "Ed25519 signatures over the canonical JSON of an op, domain-separated with \"tangentfeed/v2/op\". The private key is fixed so the vectors are reproducible; it protects nothing. The negative cases carry the weight: a verifier that returns true unconditionally passes every positive case here.",
+  "domain": "tangentfeed/v2/op",
+  "testKey": {
+    "privateKey": "0001020304050607080910111213141516171819202122232425262728293031",
+    "publicKey": "4b5f52db17ebdeb555101922e89beac9b43e864086b02e4529951d7f491f0cfa",
+    "deviceId": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+  },
+  "cases": [
+    {
+      "description": "a string value",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "buy milk",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "zB3i+CPz57tdDaAs6RcFav+WtUVoDojUMeYzvdG7WI6HaJHDiyD0bClRHp6cGKkZg5q9zKlRh8lOvR7PFy5HCQ=="
+    },
+    {
+      "description": "a boolean value",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "done",
+        "value": false,
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "VXEnElBXbC1pOfbciCFS78/vj2Uq7OzB6mGD8+bEYv5rcpbemkS2MhppmwlwzCL8+Iaydl8B7/siZtOxh/cWBA=="
+    },
+    {
+      "description": "a null value, which clears the cell",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "note",
+        "value": null,
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "mXw0nlKwkjdMd6b2ZAzXcP5VQ3cVRWkdl1fJejvV6ApvKfFesEb99ASS6FeEU6rV8h+swmDPcuk79MHqhLW3CQ=="
+    },
+    {
+      "description": "a nested object value, canonicalised before signing",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "place",
+        "value": {
+          "lon": 2,
+          "lat": 1
+        },
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "G2uTXBmx1HHkwELW4LECvjk5iOiZsgsxL2pqZhF9CuzaxFjHqLfxH54Dsp8pnntnqa7QGRE2qblWN/SyAjPxDg=="
+    },
+    {
+      "description": "an array value",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "tags",
+        "value": [
+          "a",
+          "b"
+        ],
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "i61RZf4OHG+RME66s13ZNmlBO3S9IAIgRGkJjrJuFHfpC1TrFMIOXva0isI+QlRn2MRXyYM/SK9jO2jfoe7XAQ=="
+    },
+    {
+      "description": "a row tombstone",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "-",
+        "value": true,
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "1Mu4mCejh+neHNc63p0LAPcwpepPpz+Xi+Gs+T6RouwQ/GYnM7ebAoy/i9r9ADc3UVRlC+ov7OvtGSkDmpkmDA=="
+    },
+    {
+      "description": "an encrypted value, signed over the ciphertext (encrypt-then-sign)",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "e1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418"
+      },
+      "expectedSignature": "SsPBNUN0KO53XQ7chW5NUd89AcktoVH+XnEtWo/Af7o5CZM/fB+/JyuuRLW5ZeOgYG+H2uca03TYzIFol0QUCw=="
+    }
+  ],
+  "negative": [
+    {
+      "description": "the value was changed after signing",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "buy oat milk",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "zB3i+CPz57tdDaAs6RcFav+WtUVoDojUMeYzvdG7WI6HaJHDiyD0bClRHp6cGKkZg5q9zKlRh8lOvR7PFy5HCQ=="
+      },
+      "reason": "TAMPERED_VALUE"
+    },
+    {
+      "description": "the table was changed after signing",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "notes",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "buy milk",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "zB3i+CPz57tdDaAs6RcFav+WtUVoDojUMeYzvdG7WI6HaJHDiyD0bClRHp6cGKkZg5q9zKlRh8lOvR7PFy5HCQ=="
+      },
+      "reason": "TAMPERED_TABLE"
+    },
+    {
+      "description": "the row was changed after signing",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FBB",
+        "column": "title",
+        "value": "buy milk",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "zB3i+CPz57tdDaAs6RcFav+WtUVoDojUMeYzvdG7WI6HaJHDiyD0bClRHp6cGKkZg5q9zKlRh8lOvR7PFy5HCQ=="
+      },
+      "reason": "TAMPERED_ROW"
+    },
+    {
+      "description": "the hlc was moved earlier, to win a merge it should lose",
+      "op": {
+        "id": "018bcfe56700-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "buy milk",
+        "hlc": "018bcfe56700-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "zB3i+CPz57tdDaAs6RcFav+WtUVoDojUMeYzvdG7WI6HaJHDiyD0bClRHp6cGKkZg5q9zKlRh8lOvR7PFy5HCQ=="
+      },
+      "reason": "TAMPERED_HLC"
+    },
+    {
+      "description": "a signature lifted from a different op",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "done",
+        "value": false,
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "zB3i+CPz57tdDaAs6RcFav+WtUVoDojUMeYzvdG7WI6HaJHDiyD0bClRHp6cGKkZg5q9zKlRh8lOvR7PFy5HCQ=="
+      },
+      "reason": "SIGNATURE_FROM_ANOTHER_OP"
+    },
+    {
+      "description": "the signature is not valid base64",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "buy milk",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "!!!not base64!!!"
+      },
+      "reason": "MALFORMED_SIGNATURE"
+    },
+    {
+      "description": "a well-formed signature of the right length that is simply wrong",
+      "op": {
+        "id": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "table": "tasks",
+        "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+        "column": "title",
+        "value": "buy milk",
+        "hlc": "018bcfe56800-0000-6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "device": "6e5b3ce7e3c5684eacfed2d9f74e6418",
+        "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+      },
+      "reason": "BAD_SIGNATURE"
+    }
+  ]
+}
