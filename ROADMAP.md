@@ -33,6 +33,15 @@ npm test
 
 - [x] Renamed from `syncdb` to `tangentfeed` before first publish. Normative identifiers (HKDF info string, data channel label, storage prefix) changed with it; see PROTOCOL.md.
 
+- [x] Signed operations (protocol v0.2, phase 1): every op carries an Ed25519
+  signature and deviceId derives from the public key, so ops cannot be forged
+  and an identity cannot be claimed without the key that proves it. Keys travel
+  in the sync session and the directory is self-validating, since a key that
+  does not hash to its claimed id is discarded. Encrypt-then-sign keeps keyless
+  relays able to verify what they forward. Phase 1 of four: it does NOT yet stop
+  an unauthorised peer from participating — that is the membership roster in
+  phase 2. Not wire-compatible with v0.1.
+
 - [x] Spec hardening for third-party implementations: §8.1 canonical JSON
   pinned to RFC 8785 (verified descriptive, not a change — the existing
   implementation already matched it exactly, including the RFC's own vector);

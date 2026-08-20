@@ -1,7 +1,11 @@
-# TangentFeed Protocol — v0.1 (draft)
+# TangentFeed Protocol — v0.2 (draft)
 
-Status: v0.1 — implemented and covered by the conformance suite. Refinements are
+Status: v0.2 — implemented and covered by the conformance suite. Refinements are
 expected before v1.0 freezes the wire format.
+
+v0.2 adds operation signatures (§12) and is **not wire-compatible with v0.1**:
+ops gained a required `sig` field and deviceId widened from 64 to 128 bits. A
+v0.1 and a v0.2 peer abort at `hello`.
 
 Naming: this protocol was developed under the working name "syncdb" and renamed
 to TangentFeed before first release. Three identifiers carry the name and are
@@ -51,7 +55,9 @@ be added later without breaking the protocol:
 
 - Partial replication / per-row sync filters
 - Multi-user permissions or per-row ACLs (v1 syncs a whole space between
-  trusted devices of one owner)
+  trusted devices of one owner). Note that §12 signatures prove *who* wrote an
+  op, not that they were *allowed* to: any peer can generate a keypair and
+  participate, so a space name remains a bearer credential
 - Rich CRDT value types (collaborative text, ordered lists, counters)
 - Query language of any kind
 - Server-authoritative validation
@@ -77,7 +83,7 @@ be added later without breaking the protocol:
 
 ## 3. Operation format
 
-An op is a map with exactly these fields:
+An op is a map with exactly these eight fields:
 
 | field    | type            | description                                        |
 |----------|-----------------|----------------------------------------------------|
@@ -88,6 +94,7 @@ An op is a map with exactly these fields:
 | `value`  | any JSON value or `null` | the new cell value. For tombstones (`column: "-"`): `true` = row deleted. `null` = cell cleared. |
 | `hlc`    | string          | HLC timestamp string (§4.2), equal to `id` in v0.1 |
 | `device` | string          | deviceId of the writer (redundant with hlc suffix; kept for readability, MUST match) |
+| `sig`    | string          | base64 Ed25519 signature over the payload in §12. Required |
 
 Because one device can never issue two ops with the same HLC (§4.1), the HLC
 string is globally unique and doubles as the op id. Implementations MUST treat
@@ -95,10 +102,10 @@ ops with an already-seen `id` as duplicates and ignore them (idempotency).
 
 ### 3.1 Encoding
 
-v0.1 wire encoding is JSON (UTF-8). Ops travel in batches:
+v0.2 wire encoding is JSON (UTF-8). Ops travel in batches:
 
 ```json
-{ "v": 1, "space": "<spaceId>", "ops": [ { ...op }, ... ] }
+{ "v": 2, "space": "<spaceId>", "ops": [ { ...op }, ... ] }
 ```
 
 A future protocol version may add CBOR; the version field exists so peers can
@@ -154,22 +161,32 @@ preserves causality: any op written after seeing remote data sorts after it.
 ### 4.2 String encoding (canonical, sortable)
 
 ```
-{millis as 12 lowercase hex chars}-{counter as 4 lowercase hex chars}-{deviceId}
+{millis as 12 lowercase hex chars}-{counter as 4 lowercase hex chars}-{deviceId as 32 lowercase hex chars}
 ```
 
-Example: `018f6e2a9c40-0003-a1b2c3d4e5f60718`
+Example: `018f6e2a9c40-0003-a1b2c3d4e5f60718a1b2c3d4e5f60718`
 
-Properties: fixed width (12 + 1 + 4 + 1 + 16 = 34 chars), and **plain
+Properties: fixed width (12 + 1 + 4 + 1 + 32 = 50 chars), and **plain
 bytewise/lexicographic string comparison equals logical HLC comparison**.
 Implementations MAY compare HLCs as strings; the conformance suite verifies
 both paths agree.
 
 ### 4.3 deviceId
 
-16 lowercase hex characters (64 random bits), generated once per device per
-space and persisted. Collision probability is negligible at "devices of one
-user" scale. deviceId is the final tiebreaker in HLC ordering; two ops can
-only be fully equal if they are the same op.
+32 lowercase hex characters: the **first 16 bytes of SHA-256(publicKey)**,
+where publicKey is the device's Ed25519 signing key (§12). A device therefore
+cannot claim an identity it holds no key for.
+
+The keypair is generated once per device per space and persisted; the deviceId
+follows from it and is never chosen.
+
+128 bits, not the 64 of v0.1. The width changed because the identifier became a
+security boundary: it decides whose signature counts. At 64 bits a targeted
+impersonation costs about 2^64 keypair generations, which is expensive but
+reachable; at 128 it is not.
+
+deviceId is the final tiebreaker in HLC ordering; two ops can only be fully
+equal if they are the same op.
 
 ### 4.4 rowId
 
@@ -235,16 +252,25 @@ than aborting the session.
 
 | `t` | Field | Type | Required | Meaning |
 |---|---|---|---|---|
-| `hello` | `v` | integer | yes | Wire version. `1` in v0.1 |
+| `hello` | `v` | integer | yes | Wire version. `2` in v0.2 |
 | | `space` | string | yes | Space id. A mismatch aborts (§11 `SPACE_MISMATCH`) |
 | | `clock` | string | yes | Sender's current HLC string (§4.2) |
+| | `key` | string | yes | Sender's Ed25519 public key, lowercase hex (§12) |
 | | `schemaVersion` | integer | no | Advisory only (§10). Absent means "unknown"; never a reason to refuse |
+| `keys` | `keys` | object | yes | `deviceId` → public key, lowercase hex. Every key the sender holds, including its own |
 | `since` | `have` | object | yes | Frontier: `deviceId` → highest HLC string seen from that device. `{}` means "I have nothing" |
 | `ops` | `ops` | array | yes | Zero or more ops (§3). An empty array is legal and means "nothing above your frontier" |
 | `ack` | `frontier` | object | yes | Sender's frontier after applying. Same shape as `since.have` |
 
 Notes that a second implementation needs:
 
+- **`keys` precedes `ops`, always.** An op from a device whose key the
+  receiver does not hold is rejected, not queued (§12), so a sender MUST send
+  `keys` before the first `ops` message of a session and before forwarding ops
+  it has newly learned.
+- **Relaying other devices' keys is expected.** It is what lets an op reach a
+  peer that never met its author. It is safe without authentication because a
+  key that does not hash to its claimed deviceId is discarded (§12).
 - **`hello` is not a handshake gate.** Both sides send it unprompted on
   channel open; neither waits for the other's before sending `since`.
 - **The session is symmetric.** There is no client and no server. Both peers
@@ -449,9 +475,88 @@ versions safe:
 | `BAD_OP`      | op fails validation (shape, charset, size) |
 | `SPACE_MISMATCH` | hello for a different space             |
 | `DECRYPT_FAIL`| E2E ciphertext rejected                    |
+| `BAD_SIGNATURE` | op signature does not verify (§12)       |
+| `UNKNOWN_DEVICE` | no public key held for the op's device (§12) |
 
-Limits (v0.1): op JSON ≤ 64 KiB; table/column names ≤ 64 chars; a batch ≤ 1000
+Limits (v0.2): op JSON ≤ 64 KiB; table/column names ≤ 64 chars; a batch ≤ 1000
 ops. Oversized inputs are `BAD_OP`.
+
+---
+
+## 12. Operation signatures
+
+Every op carries an Ed25519 signature. An unsigned op is invalid in every
+space: there is no per-space policy and no tolerance mode, because a mode that
+accepts unsigned ops offers no protection — an attacker simply omits the field.
+
+### 12.1 What is signed
+
+```
+message = "tangentfeed/v2/op" || canonicalJson({id, table, row, column, value, hlc, device})
+sig     = Ed25519(privateKey, message)
+op.sig  = base64(sig)                          // 64 bytes -> 88 characters
+```
+
+Canonical JSON (§8.1) is reused rather than defining another serialization: it
+is RFC 8785, and it is already load-bearing for encryption, so an implementation
+that gets it wrong fails in two places rather than silently in one.
+
+The domain prefix prevents a signature ever being valid in another context.
+
+`sig` is excluded from its own payload, which makes signing deterministic and
+lets a verifier reconstruct the payload from the op it received with nothing
+extra to agree on.
+
+Because the signature covers `id`, `hlc` and `device`, a valid op cannot be
+lifted and repointed at another row, table, or timestamp.
+
+### 12.2 Encrypt-then-sign
+
+Where §7 encryption is enabled, `value` is already the `e1:` envelope when the
+op is signed. This ordering is forced, not preferred: §7 requires keyless peers
+to merge and forward correctly, and signing the plaintext would make signatures
+unverifiable by exactly those peers. Signing the ciphertext keeps a keyless
+relay able to verify everything it passes on.
+
+### 12.3 Key distribution
+
+`deviceId` is a hash of the public key (§4.3), so it cannot be inverted — a
+verifier needs the key itself. Keys travel in the sync session (§6.1): `hello`
+carries the sender's own, and `keys` carries every key the sender holds.
+Received keys are persisted.
+
+Ops travel transitively, so a peer relays keys it learned from others. That
+needs no authentication: an entry whose key does not hash to its claimed
+deviceId is discarded, which makes the directory self-validating.
+
+An op from a device whose key is not held is **rejected, not queued**. In a
+well-formed session `keys` precedes `ops`, so this should not arise; treating
+it as an error rather than maintaining a pending queue keeps the state machine
+small, and the sender resends after the next exchange.
+
+### 12.4 Validation order
+
+1. Shape (§3)
+2. **Signature**
+3. Clock drift (§4.5)
+4. Merge (§5)
+
+Signature verification precedes the drift check so that an unauthenticated peer
+cannot provoke clock errors, and precedes merge so that a forged op never
+reaches storage. A batch containing any op that fails leaves nothing behind.
+
+### 12.5 What this does and does not establish
+
+It establishes that an op was written by the holder of a particular key, and
+that it has not been altered since.
+
+It does **not** establish that the writer was *permitted* to write. Any peer
+can generate a keypair and participate. Membership, roles and revocation are
+not part of v0.2; until they exist, a space name remains a bearer credential
+and the signaling relay should be treated as private.
+
+Vectors: `/conformance/signatures`, whose negative cases matter more than its
+positive ones — a verifier that accepts everything passes all the latter.
 
 ---
 

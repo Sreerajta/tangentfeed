@@ -67,7 +67,7 @@ opaque messages, and may lose, duplicate, or reorder them freely.
 | Package | Purpose |
 |---|---|
 | `tangentfeed` | Batteries-included entry point (`openSpace`) |
-| `@tangentfeed/core` | Protocol engine: HLC, oplog, merge, replication. **Zero dependencies** |
+| `@tangentfeed/core` | Protocol engine: HLC, oplog, merge, replication, signatures. Two audited dependencies (`@noble/curves`, `@noble/hashes`) |
 | `@tangentfeed/adapter-idb` | IndexedDB storage (browsers) |
 | `@tangentfeed/adapter-sqlite` | SQLite storage (Node, Electron, Bun, React Native) |
 | `@tangentfeed/crypto` | End-to-end encryption (XChaCha20-Poly1305) |

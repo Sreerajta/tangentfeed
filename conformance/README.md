@@ -96,6 +96,15 @@ ambiguous while implementing. A good vector:
 - includes operations in a deliberately unhelpful order
 - uses realistic HLC strings so string-comparison ordering is exercised
 
+## Key material
+
+`test-keys.json` holds the keypairs the vectors are signed with, derived
+deterministically so any implementation reproduces them. A harness must learn
+these before replaying anything: an op from a device whose key is unknown is
+rejected (§12), which is the same exchange a real peer performs.
+
+They are public by construction and must never be used for real data.
+
 ## Not yet covered
 
 - **Compaction outcomes (§9).** These depend on recorded peer frontiers rather
