@@ -13,6 +13,19 @@ import {
 } from "@tangentfeed/core";
 import { IdbAdapter } from "../src/index.js";
 
+// The vectors are signed, and an op from an unknown device is rejected (§12),
+// so the harness performs the same key exchange a real peer would.
+const KEYS_FILE = join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/test-keys.json");
+const testKeys = JSON.parse(readFileSync(KEYS_FILE, "utf8")) as {
+  keys: Record<string, { publicKey: string }>;
+};
+function learnTestKeys(engine: { learnKey(id: string, key: Uint8Array): boolean }): void {
+  for (const [id, k] of Object.entries(testKeys.keys)) {
+    engine.learnKey(id, new Uint8Array((k.publicKey.match(/../g) ?? []).map((h) => parseInt(h, 16))));
+  }
+}
+
+
 const T0 = 1_700_000_000_000;
 const VECTORS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -39,10 +52,10 @@ beforeEach(() => {
 async function idbEngine(space: string, deviceHex = "1", clock?: () => number) {
   const storage = await IdbAdapter.open(space, factory);
   const engine = await SyncEngine.open({
-    deviceId: deviceHex.padStart(16, "0"),
     storage,
     physicalClock: clock ?? (() => 0x018f6e2b_ffff),
   });
+  learnTestKeys(engine);
   return { engine, storage };
 }
 
@@ -107,10 +120,10 @@ describe("interop", () => {
   it("IdbAdapter engine syncs with MemoryAdapter engine (adapter-agnostic protocol)", async () => {
     const { engine: idb } = await idbEngine("interop", "1", () => T0);
     const mem = await SyncEngine.open({
-      deviceId: "2".padStart(16, "0"),
       storage: new MemoryAdapter(),
       physicalClock: () => T0 + 1,
     });
+  learnTestKeys(mem);
 
     const id = await idb.insert("tasks", { title: "Buy milk", done: false });
     await syncOnce(idb, mem);
@@ -127,10 +140,12 @@ describe("interop", () => {
   it("subscriber fires on remote application (UI wiring works)", async () => {
     const { engine: idb } = await idbEngine("notify", "1", () => T0);
     const mem = await SyncEngine.open({
-      deviceId: "2".padStart(16, "0"),
       storage: new MemoryAdapter(),
       physicalClock: () => T0,
     });
+    learnTestKeys(mem);
+    // These two swap ops directly, standing in for the `keys` exchange (§6.1).
+    idb.learnKey(mem.deviceId, mem.publicKey);
     await mem.insert("tasks", { title: "incoming" });
     const changes: string[] = [];
     idb.subscribe((ev) => {

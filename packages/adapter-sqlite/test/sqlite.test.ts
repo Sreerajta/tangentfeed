@@ -13,6 +13,19 @@ import {
 } from "@tangentfeed/core";
 import { SqliteAdapter, betterSqliteDriver, nodeSqliteDriver } from "../src/index.js";
 
+// The vectors are signed, and an op from an unknown device is rejected (§12),
+// so the harness performs the same key exchange a real peer would.
+const KEYS_FILE = join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/test-keys.json");
+const testKeys = JSON.parse(readFileSync(KEYS_FILE, "utf8")) as {
+  keys: Record<string, { publicKey: string }>;
+};
+function learnTestKeys(engine: { learnKey(id: string, key: Uint8Array): boolean }): void {
+  for (const [id, k] of Object.entries(testKeys.keys)) {
+    engine.learnKey(id, new Uint8Array((k.publicKey.match(/../g) ?? []).map((h) => parseInt(h, 16))));
+  }
+}
+
+
 const T0 = 1_700_000_000_000;
 const VECTORS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -63,11 +76,12 @@ function tmpFile(): string {
 }
 
 async function engine(storage: SqliteAdapter, n = 1, clock?: () => number) {
-  return SyncEngine.open({
-    deviceId: n.toString(16).padStart(16, "0"),
+  const e = await SyncEngine.open({
     storage,
     physicalClock: clock ?? (() => 0x018f6e2b_ffff),
   });
+  learnTestKeys(e);
+  return e;
 }
 
 describe("conformance vectors on SQLite", () => {
@@ -167,10 +181,10 @@ describe("interop and correctness", () => {
   it("SQLite engine syncs with an in-memory engine and converges", async () => {
     const sq = await engine(memoryAdapter(), 1, () => T0);
     const mem = await SyncEngine.open({
-      deviceId: "2".padStart(16, "0"),
       storage: new MemoryAdapter(),
       physicalClock: () => T0 + 1,
     });
+  learnTestKeys(mem);
 
     const id = await sq.insert("tasks", { title: "Buy milk", done: false });
     await syncOnce(sq, mem);
@@ -187,7 +201,6 @@ describe("interop and correctness", () => {
   it("opsSince returns correct results with a partial frontier", async () => {
     const a = await engine(memoryAdapter(), 1, () => T0);
     const b = await SyncEngine.open({
-      deviceId: "2".padStart(16, "0"),
       storage: new MemoryAdapter(),
       physicalClock: () => T0 + 5,
     });

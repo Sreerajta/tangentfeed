@@ -2,18 +2,47 @@
   "name": "same-cell-lww-and-tiebreak",
   "description": "Same cell written concurrently: highest HLC wins. Includes an identical (millis,counter) pair where deviceId is the tiebreaker (§4.2, §5): device ffff... beats aaaa... at equal time.",
   "ops": [
-    { "id": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa", "table": "settings", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "theme", "value": "light", "hlc": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a9c40-0000-ffffffffffffffff", "table": "settings", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "theme", "value": "dark", "hlc": "018f6e2a9c40-0000-ffffffffffffffff", "device": "ffffffffffffffff" },
-    { "id": "018f6e2a9b00-0005-cccccccccccccccc", "table": "settings", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "theme", "value": "sepia", "hlc": "018f6e2a9b00-0005-cccccccccccccccc", "device": "cccccccccccccccc" }
+    {
+      "id": "018f6e2a9c40-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "settings",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+      "column": "theme",
+      "value": "light",
+      "hlc": "018f6e2a9c40-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "ZRYU34ZKhdfyW/zNUR89sRFFt3X5PFnoxZ+9IUgAwjnc8wn0K379BlGr9CAfXJP6POwV2n7u6pr6t9GMROSNAg=="
+    },
+    {
+      "id": "018f6e2a9c40-0000-685674d4d9b4f232499fd2bd148b199d",
+      "table": "settings",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+      "column": "theme",
+      "value": "dark",
+      "hlc": "018f6e2a9c40-0000-685674d4d9b4f232499fd2bd148b199d",
+      "device": "685674d4d9b4f232499fd2bd148b199d",
+      "sig": "WiahG/Ld0LOQhnPB/GI9I3aRUGT7IXTMmJzP7TpEiaF+yND0BEqzHtzGLsIR7I0ADg6Lhg2jeVhcxQ0FNIUrCw=="
+    },
+    {
+      "id": "018f6e2a9b00-0005-6de7331041aeb11a47b90ce47a28cf16",
+      "table": "settings",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+      "column": "theme",
+      "value": "sepia",
+      "hlc": "018f6e2a9b00-0005-6de7331041aeb11a47b90ce47a28cf16",
+      "device": "6de7331041aeb11a47b90ce47a28cf16",
+      "sig": "bJTwXYNLhskHLK1EHPIL3QS8f8BzE1/8Qzu4Qz4er90LwEdj7URU3Kg1sddGA/yKgYknKmijUpOxyPGoUuHTAQ=="
+    }
   ],
   "expectedState": {
     "settings": {
-      "01HZX3NDEKTSV4RRFFQ69G5FAA": { "theme": "dark" }
+      "01HZX3NDEKTSV4RRFFQ69G5FAA": {
+        "theme": "dark"
+      }
     }
   },
   "expectedFrontier": {
-    "aaaaaaaaaaaaaaaa": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa",
-    "ffffffffffffffff": "018f6e2a9c40-0000-ffffffffffffffff",
-    "cccccccccccccccc": "018f6e2a9b00-0005-cccccccccccccccc"
+    "29de64fc1545395ccd0586fefbda3a82": "018f6e2a9c40-0000-29de64fc1545395ccd0586fefbda3a82",
+    "685674d4d9b4f232499fd2bd148b199d": "018f6e2a9c40-0000-685674d4d9b4f232499fd2bd148b199d",
+    "6de7331041aeb11a47b90ce47a28cf16": "018f6e2a9b00-0005-6de7331041aeb11a47b90ce47a28cf16"
   }
 }

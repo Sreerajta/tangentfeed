@@ -34,7 +34,6 @@ const freshSpace = () => `rtc-${Date.now()}-${spaceCounter++}`;
 
 async function peer(space: string, n: number) {
   const engine = await SyncEngine.open({
-    deviceId: n.toString(16).padStart(16, "0"),
     storage: new MemoryAdapter(),
     physicalClock: () => T0 + (Date.now() % 100_000),
   });
@@ -134,7 +133,7 @@ describe("WebRTC transport end-to-end", () => {
     // b returns with a fresh transport over the SAME engine (same replica)
     const t2 = new WebRTCTransport({
       space,
-      deviceId: b.engine.deviceId,
+      deviceId: b.engine.deviceId, // same replica returning, same identity
       signalingUrl: `ws://127.0.0.1:${server.port}`,
       wrtc: { RTCPeerConnection: RTCPeerConnection as unknown as typeof globalThis.RTCPeerConnection },
       WebSocketImpl: WebSocket as unknown as typeof globalThis.WebSocket,

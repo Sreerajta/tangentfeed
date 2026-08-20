@@ -2,12 +2,56 @@
   "name": "encrypted-values-merge-blindly",
   "description": "§7: encryption changes only the shape of `value`. A peer WITHOUT the key must still apply LWW correctly, keep ciphertext byte-exact, and honour plaintext tombstones. This vector is applied by a keyless engine, so expectedState contains the raw e1: envelopes: proof that merge never needs to decrypt.",
   "ops": [
-    { "id": "018f6e2a0100-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD1", "column": "title", "value": "e1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAb2xkZXItY2lwaGVydGV4dA==", "hlc": "018f6e2a0100-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0200-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD1", "column": "title", "value": "e1:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbmV3ZXItY2lwaGVydGV4dA==", "hlc": "018f6e2a0200-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
-    { "id": "018f6e2a0150-0000-cccccccccccccccc", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD1", "column": "done", "value": "e1:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCZG9uZS1jaXBoZXJ0ZXh0", "hlc": "018f6e2a0150-0000-cccccccccccccccc", "device": "cccccccccccccccc" },
-
-    { "id": "018f6e2a0300-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD2", "column": "title", "value": "e1:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDZGVsZXRlZC1yb3c=", "hlc": "018f6e2a0300-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0301-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FD2", "column": "-", "value": true, "hlc": "018f6e2a0301-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" }
+    {
+      "id": "018f6e2a0100-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FD1",
+      "column": "title",
+      "value": "e1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAb2xkZXItY2lwaGVydGV4dA==",
+      "hlc": "018f6e2a0100-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "YWnBte52pHGzdJyizIV/qXk8HcwGoMDFO6Vc7d8Nvrgn7zxn2bZFFKDWon0SnZZpfhxeS7lF+ZhUohvjnJIUCA=="
+    },
+    {
+      "id": "018f6e2a0200-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FD1",
+      "column": "title",
+      "value": "e1:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbmV3ZXItY2lwaGVydGV4dA==",
+      "hlc": "018f6e2a0200-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "VR1rY2lPEdhxSdYmoLAv7k3EC0/U8Ugu+AdsjyKOVmyGifxzUFn10GG83WIqhS+mCvlXFvqxoka6hsilbO2vDA=="
+    },
+    {
+      "id": "018f6e2a0150-0000-6de7331041aeb11a47b90ce47a28cf16",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FD1",
+      "column": "done",
+      "value": "e1:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCZG9uZS1jaXBoZXJ0ZXh0",
+      "hlc": "018f6e2a0150-0000-6de7331041aeb11a47b90ce47a28cf16",
+      "device": "6de7331041aeb11a47b90ce47a28cf16",
+      "sig": "zCKTYxy4B+qds8Cx5vBBmqWUMt/gBu8xJlx1JYPBKSNMgoKTphGKq8+H28E1AQUEaJ0/AhWcBpkvc7finAhjAw=="
+    },
+    {
+      "id": "018f6e2a0300-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FD2",
+      "column": "title",
+      "value": "e1:DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDZGVsZXRlZC1yb3c=",
+      "hlc": "018f6e2a0300-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "/O8YmZj9GQ2/mWRa9XuswqFuefF/PQhP43F0vcI/quU+t7dPG/KnWIfXqv8Z1wlbHreC10DUwEvbii7QLUsUCw=="
+    },
+    {
+      "id": "018f6e2a0301-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FD2",
+      "column": "-",
+      "value": true,
+      "hlc": "018f6e2a0301-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "6BNVKD/VK3tO8J3mtxE7p32xYga6eoslPPsfeJguOioKUx9c9OPmdbYwxiorzxZ+9+6wJVUzJ6Ce+9sIlSiyAA=="
+    }
   ],
   "expectedState": {
     "tasks": {
@@ -18,8 +62,8 @@
     }
   },
   "expectedFrontier": {
-    "aaaaaaaaaaaaaaaa": "018f6e2a0301-0000-aaaaaaaaaaaaaaaa",
-    "bbbbbbbbbbbbbbbb": "018f6e2a0200-0000-bbbbbbbbbbbbbbbb",
-    "cccccccccccccccc": "018f6e2a0150-0000-cccccccccccccccc"
+    "29de64fc1545395ccd0586fefbda3a82": "018f6e2a0301-0000-29de64fc1545395ccd0586fefbda3a82",
+    "aea35cde9fb4a91ef9b7876dbc2dac1b": "018f6e2a0200-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+    "6de7331041aeb11a47b90ce47a28cf16": "018f6e2a0150-0000-6de7331041aeb11a47b90ce47a28cf16"
   }
 }

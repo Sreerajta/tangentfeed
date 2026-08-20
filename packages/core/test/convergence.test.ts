@@ -14,6 +14,7 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { SyncEngine, syncOnce } from "../src/engine.js";
 import { MemoryAdapter } from "../src/storage.js";
+import { link } from "./test-keys.js";
 import type { Op } from "../src/op.js";
 
 const T0 = 1_700_000_000_000;
@@ -26,16 +27,19 @@ interface Sim {
 }
 
 async function makeEngines(n: number, step: () => number): Promise<SyncEngine[]> {
-  return Promise.all(
+  const engines = await Promise.all(
     Array.from({ length: n }, (_, i) => {
       const skew = ((i * 7919) % 40_000) - 20_000; // ±20s per-device skew
       return SyncEngine.open({
-        deviceId: i.toString(16).padStart(16, "0"),
         storage: new MemoryAdapter(),
         physicalClock: () => T0 + step() * 10 + skew,
       });
     }),
   );
+  // These engines gossip directly, so they stand in for the `keys` exchange a
+  // real session performs before any ops move (§6.1).
+  link(...engines);
+  return engines;
 }
 
 const arbEvent = fc.record({
@@ -152,12 +156,16 @@ describe("multi-engine convergence", () => {
 
           // Reference state: apply in HLC order to a fresh engine
           const next = () => rng.next().value as number;
-          const fresh = async () =>
-            SyncEngine.open({
-              deviceId: "feedfacefeedface",
+          const fresh = async () => {
+            const e = await SyncEngine.open({
               storage: new MemoryAdapter(),
               physicalClock: () => T0 + stepCount * 10 + 60_000,
             });
+            // The corpus was authored by the simulation's engines, so a fresh
+            // replica must learn their keys before it can accept any of it.
+            link(e, ...sim.engines);
+            return e;
+          };
           const ref = await fresh();
           await ref.applyRemoteOps([...corpus].sort((a, b) => (a.hlc < b.hlc ? -1 : 1)));
           const want = await ref.dump();

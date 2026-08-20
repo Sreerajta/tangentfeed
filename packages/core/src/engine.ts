@@ -421,6 +421,11 @@ function isTombstoned(cells: ReadonlyMap<string, Op>): boolean {
  * multi-peer quiescence.
  */
 export async function syncOnce(a: SyncEngine, b: SyncEngine): Promise<void> {
+  // Keys before ops, mirroring §6.1: an op from a device whose key is unknown
+  // is rejected, so the directories must meet first.
+  for (const [id, k] of a.knownKeys()) b.learnKey(id, k);
+  for (const [id, k] of b.knownKeys()) a.learnKey(id, k);
+
   const [fa, fb] = [await a.frontier(), await b.frontier()];
   const aToB = await a.opsSince(fb);
   const bToA = await b.opsSince(fa);

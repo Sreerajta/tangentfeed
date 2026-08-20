@@ -12,6 +12,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SyncEngine } from "../src/engine.js";
 import { MemoryAdapter } from "../src/storage.js";
+import { learnTestKeys } from "./test-keys.js";
 import type { Frontier, Op } from "../src/op.js";
 
 const DIR = join(dirname(fileURLToPath(import.meta.url)), "../../../conformance/session");
@@ -38,7 +39,8 @@ const vectors: Vector[] = readdirSync(DIR)
   .map((f) => JSON.parse(readFileSync(join(DIR, f), "utf8")) as Vector);
 
 async function engineWith(deviceId: string, ops: readonly Op[]): Promise<SyncEngine> {
-  const engine = await SyncEngine.open({ deviceId, storage: new MemoryAdapter() });
+  const engine = await SyncEngine.open({ storage: new MemoryAdapter() });
+  learnTestKeys(engine);
   await engine.applyRemoteOps(ops);
   return engine;
 }

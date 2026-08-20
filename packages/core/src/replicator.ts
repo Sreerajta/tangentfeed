@@ -16,12 +16,13 @@
 import type { SyncEngine } from "./engine.js";
 import { MAX_BATCH_OPS, type Frontier, type Op } from "./op.js";
 
-export const WIRE_VERSION = 1;
+export const WIRE_VERSION = 2;
 /** Conservative default; well under MAX_BATCH_OPS and typical message limits. */
 export const OPS_PER_MESSAGE = 500;
 
 export type WireMsg =
-  | { t: "hello"; v: number; space: string; from: string; clock: string }
+  | { t: "hello"; v: number; space: string; from: string; clock: string; key: string }
+  | { t: "keys"; v: number; space: string; from: string; to?: string; keys: Record<string, string> }
   | { t: "since"; v: number; space: string; from: string; to: string; have: Frontier }
   | { t: "ops"; v: number; space: string; from: string; to?: string; ops: Op[] }
   | { t: "ack"; v: number; space: string; from: string; to: string; frontier: Frontier };
@@ -109,8 +110,26 @@ export class Replicator {
   private async sendHello(): Promise<void> {
     const latest = (await this.engine.opsSince({})).at(-1)?.hlc;
     this.transport.send(
-      this.msg({ t: "hello", clock: latest ?? zeroClock(this.engine.deviceId) }),
+      this.msg({
+        t: "hello",
+        clock: latest ?? zeroClock(this.engine.deviceId),
+        key: hex(this.engine.publicKey),
+      }),
     );
+  }
+
+  /**
+   * Every device key we hold, sent before any ops so a peer never receives an
+   * op it cannot verify. Section 6.1.
+   *
+   * Relaying keys we learned from others is what lets an op reach a peer that
+   * never met its author. It is safe because learnKey discards any entry that
+   * does not hash to its claimed id.
+   */
+  private async sendKeys(to?: string): Promise<void> {
+    const keys: Record<string, string> = {};
+    for (const [id, k] of this.engine.knownKeys()) keys[id] = hex(k);
+    this.transport.send(this.msg(to === undefined ? { t: "keys", keys } : { t: "keys", to, keys }));
   }
 
   // ---------- inbound ----------
@@ -124,6 +143,7 @@ export class Replicator {
 
       switch (msg.t) {
         case "hello": {
+          if (typeof msg.key === "string") this.engine.learnKey(msg.from, unhex(msg.key));
           await this.engine.observeRemoteClock(msg.clock);
           const isNew = !this.peers.has(msg.from);
           if (isNew) {
@@ -132,11 +152,21 @@ export class Replicator {
             // greet back so they learn us (their handler sends `since` to us)
             await this.sendHello();
           }
+          // keys before ops, always: a peer that receives an op from a device
+          // it has no key for must reject it (§12)
+          await this.sendKeys(msg.from);
           // ask for what we're missing (§6 step 2) — also on re-hello, which
           // is how a returning peer heals any gap
           this.transport.send(
             this.msg({ t: "since", to: msg.from, have: await this.engine.frontier() }),
           );
+          break;
+        }
+        case "keys": {
+          for (const [id, k] of Object.entries(msg.keys)) {
+            // Silently ignores anything that does not hash to its claimed id.
+            this.engine.learnKey(id, unhex(k));
+          }
           break;
         }
         case "since": {
@@ -145,6 +175,7 @@ export class Replicator {
           // has safely reached every peer
           await this.engine.recordPeerFrontier(msg.from, msg.have);
           const missing = await this.engine.opsSince(msg.have);
+          if (missing.length > 0) await this.sendKeys(msg.from);
           for (const chunk of chunks(missing, OPS_PER_MESSAGE)) {
             this.transport.send(this.msg({ t: "ops", to: msg.from, ops: chunk }));
           }
@@ -195,3 +226,9 @@ function zeroClock(deviceId: string): string {
 
 // keep MAX_BATCH_OPS referenced so protocol constants stay linked
 void MAX_BATCH_OPS;
+
+const hex = (b: Uint8Array): string =>
+  [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+
+const unhex = (s: string): Uint8Array =>
+  new Uint8Array((s.match(/../g) ?? []).map((h) => parseInt(h, 16)));

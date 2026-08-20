@@ -4,6 +4,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SyncEngine } from "../src/engine.js";
 import { MemoryAdapter } from "../src/storage.js";
+import { learnTestKeys } from "./test-keys.js";
 import type { Op, Frontier } from "../src/op.js";
 
 const VECTORS_DIR = join(
@@ -37,12 +38,13 @@ function shuffled<T>(arr: readonly T[], seed: number): T[] {
 }
 
 async function freshEngine(): Promise<SyncEngine> {
-  return SyncEngine.open({
-    deviceId: "1234567890abcdef",
+  const engine = await SyncEngine.open({
     storage: new MemoryAdapter(),
     // fixed clock near the vectors' era so drift checks pass deterministically
     physicalClock: () => 0x018f6e2b_ffff,
   });
+  learnTestKeys(engine);
+  return engine;
 }
 
 describe("conformance vectors (merge)", () => {

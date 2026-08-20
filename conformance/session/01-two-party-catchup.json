@@ -2,66 +2,110 @@
   "name": "two-party-catchup",
   "description": "A recorded sync session (§6) from one peer's point of view. Two devices wrote while offline and now connect. This pins the two decisions that determine whether two implementations can actually talk: which ops you must send given the frontier a peer advertises, and what your state and frontier must be after applying theirs. Message framing itself is pinned by the table in §6.1.",
   "space": "conformance",
-  "localDevice": "aaaaaaaaaaaaaaaa",
-  "remoteDevice": "bbbbbbbbbbbbbbbb",
-
+  "localDevice": "29de64fc1545395ccd0586fefbda3a82",
+  "remoteDevice": "aea35cde9fb4a91ef9b7876dbc2dac1b",
   "localOps": [
-    { "id": "018bcfe56800-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "title", "value": "buy milk", "hlc": "018bcfe56800-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018bcfe56801-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "done", "value": false, "hlc": "018bcfe56801-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" }
+    {
+      "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+      "column": "title",
+      "value": "buy milk",
+      "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "cS2tcrWYvDi59zOFZ/x6zJPN30LJMhjXtcjXzxQiJ+EQ68qgtftvgib3pyXxCbwm51CMBVqqGF0BQX1f7vbdAQ=="
+    },
+    {
+      "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+      "column": "done",
+      "value": false,
+      "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "saQyoesJ+Lwx/Q4+MC+dv9HjBiANnTFQ4+ieawFp7g5fANsNHRknZQICzBZht1vw9El2O5Ear1PibQtu76H4Bg=="
+    }
   ],
-
   "remoteOps": [
-    { "id": "018bcfe56800-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAA", "column": "done", "value": true, "hlc": "018bcfe56800-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
-    { "id": "018bcfe56802-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FBB", "column": "title", "value": "walk dog", "hlc": "018bcfe56802-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" }
+    {
+      "id": "018bcfe56800-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+      "column": "done",
+      "value": true,
+      "hlc": "018bcfe56800-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "8IYt+FYIPJLkK0L52I6YqW84A7CLVzHGf4kEVGr2KNoRVOx+jEQcwhUEhG1GMxWVCanROtDucQkBV96O95jHAQ=="
+    },
+    {
+      "id": "018bcfe56802-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FBB",
+      "column": "title",
+      "value": "walk dog",
+      "hlc": "018bcfe56802-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "ARvYyu/NAO34ji8GPX7wasjw0lgRBrmLF6vZ9m6z1im6706R69fDHdGwgJy/Pa5JubPQxKEy83FtbNgK2G29DQ=="
+    }
   ],
-
   "advertisedFrontier": {
     "description": "The frontier the local peer sends in its `since` message before applying anything. Derived from localOps alone.",
     "expected": {
-      "aaaaaaaaaaaaaaaa": "018bcfe56801-0000-aaaaaaaaaaaaaaaa"
+      "29de64fc1545395ccd0586fefbda3a82": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82"
     }
   },
-
   "diffCases": [
     {
       "description": "A peer that has nothing must receive everything. This is also what a peer sends after losing its frontier, and it must be safe to replay.",
       "peerFrontier": {},
       "expectedOpIds": [
-        "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
-        "018bcfe56801-0000-aaaaaaaaaaaaaaaa"
+        "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+        "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82"
       ]
     },
     {
       "description": "Strictly above, not at or above. A peer that already holds our first op must receive only the second; sending the one it named back to it is a common off-by-one.",
-      "peerFrontier": { "aaaaaaaaaaaaaaaa": "018bcfe56800-0000-aaaaaaaaaaaaaaaa" },
-      "expectedOpIds": ["018bcfe56801-0000-aaaaaaaaaaaaaaaa"]
+      "peerFrontier": {
+        "29de64fc1545395ccd0586fefbda3a82": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82"
+      },
+      "expectedOpIds": [
+        "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82"
+      ]
     },
     {
       "description": "A fully caught-up peer receives an empty batch. Sending `ops` with an empty array is legal; so is sending nothing.",
-      "peerFrontier": { "aaaaaaaaaaaaaaaa": "018bcfe56801-0000-aaaaaaaaaaaaaaaa" },
+      "peerFrontier": {
+        "29de64fc1545395ccd0586fefbda3a82": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82"
+      },
       "expectedOpIds": []
     },
     {
       "description": "A frontier naming a device we have never heard of does not filter our own ops.",
-      "peerFrontier": { "cccccccccccccccc": "018bcfe56900-0000-cccccccccccccccc" },
+      "peerFrontier": {
+        "6de7331041aeb11a47b90ce47a28cf16": "018bcfe56900-0000-6de7331041aeb11a47b90ce47a28cf16"
+      },
       "expectedOpIds": [
-        "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
-        "018bcfe56801-0000-aaaaaaaaaaaaaaaa"
+        "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+        "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82"
       ]
     }
   ],
-
   "afterApplyingRemote": {
     "description": "Both peers converge on this once each has applied the other's ops. The `done` cell is the interesting one: the local write at millis ...801 beats the remote write at ...800, so `false` wins despite arriving first.",
     "expectedState": {
       "tasks": {
-        "01HZX3NDEKTSV4RRFFQ69G5FAA": { "title": "buy milk", "done": false },
-        "01HZX3NDEKTSV4RRFFQ69G5FBB": { "title": "walk dog" }
+        "01HZX3NDEKTSV4RRFFQ69G5FAA": {
+          "title": "buy milk",
+          "done": false
+        },
+        "01HZX3NDEKTSV4RRFFQ69G5FBB": {
+          "title": "walk dog"
+        }
       }
     },
     "expectedFrontier": {
-      "aaaaaaaaaaaaaaaa": "018bcfe56801-0000-aaaaaaaaaaaaaaaa",
-      "bbbbbbbbbbbbbbbb": "018bcfe56802-0000-bbbbbbbbbbbbbbbb"
+      "29de64fc1545395ccd0586fefbda3a82": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+      "aea35cde9fb4a91ef9b7876dbc2dac1b": "018bcfe56802-0000-aea35cde9fb4a91ef9b7876dbc2dac1b"
     }
   }
 }

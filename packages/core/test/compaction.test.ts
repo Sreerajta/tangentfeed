@@ -12,13 +12,13 @@ import { SyncEngine, syncOnce } from "../src/engine.js";
 import { MemoryAdapter } from "../src/storage.js";
 import { compactionHorizon, blockingPeers } from "../src/compaction.js";
 import type { Frontier } from "../src/op.js";
+import { link } from "./test-keys.js";
 
 const T0 = 1_700_000_000_000;
-const dev = (n: number) => n.toString(16).padStart(16, "0");
+const dev = (n: number) => n.toString(16).padStart(32, "0");
 
 async function engine(n: number, clock?: () => number) {
   return SyncEngine.open({
-    deviceId: dev(n),
     storage: new MemoryAdapter(),
     physicalClock: clock ?? (() => T0 + n),
   });
@@ -86,6 +86,7 @@ describe("compaction safety", () => {
   it("never drops ops a known peer has not seen yet", async () => {
     const a = await engine(1);
     const b = await engine(2);
+    link(a, b);
     const id = await a.insert("tasks", { title: "one" });
     await syncOnce(a, b); // b's frontier recorded on a
 
@@ -124,6 +125,7 @@ describe("compaction safety", () => {
 
     // the tombstone op is still in the log, so it can still be replicated
     const peer = await engine(2);
+    link(e, peer);
     await peer.applyRemoteOps(await e.opsSince({}));
     expect(await peer.get("tasks", id)).toBeUndefined();
   });
@@ -131,6 +133,7 @@ describe("compaction safety", () => {
   it("RESURRECTION HAZARD: tombstone GC only when the horizon has passed it", async () => {
     const a = await engine(1);
     const b = await engine(2, () => T0 + 5_000);
+    link(a, b);
     const id = await a.insert("tasks", { title: "contested" });
     await syncOnce(a, b);
 
@@ -157,6 +160,7 @@ describe("compaction safety", () => {
   it("compaction on one peer does not break convergence with another", async () => {
     const a = await engine(1);
     const b = await engine(2, () => T0 + 3);
+    link(a, b);
     const id = await a.insert("tasks", { title: "v1", done: false });
     for (const t of ["v2", "v3"]) await a.update("tasks", id, { title: t });
     await syncOnce(a, b);
@@ -198,12 +202,12 @@ describe("convergence is preserved under compaction (property)", () => {
           const engines = await Promise.all(
             [1, 2, 3].map((n) =>
               SyncEngine.open({
-                deviceId: dev(n),
                 storage: new MemoryAdapter(),
                 physicalClock: () => T0 + step * 10 + n,
               }),
             ),
           );
+          link(...engines);
           const rows: string[] = [];
 
           for (const ev of events) {

@@ -22,7 +22,6 @@ afterAll(() => ndc.cleanup());
 
 async function device(n: number) {
   const engine = await SyncEngine.open({
-    deviceId: n.toString(16).padStart(16, "0"),
     storage: new MemoryAdapter(),
     physicalClock: () => T0 + (Date.now() % 100_000),
   });

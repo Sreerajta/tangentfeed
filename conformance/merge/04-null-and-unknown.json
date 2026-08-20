@@ -2,21 +2,73 @@
   "name": "null-clears-and-unknown-preserved",
   "description": "§3: value null clears a cell (absent from materialized row). §10: ops for tables/columns the implementation does not recognize MUST be stored and materialized like any other; unknown is not invalid.",
   "ops": [
-    { "id": "018f6e2a0020-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FC1", "column": "title", "value": "has note", "hlc": "018f6e2a0020-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0021-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FC1", "column": "note", "value": "temporary", "hlc": "018f6e2a0021-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0022-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FC1", "column": "note", "value": null, "hlc": "018f6e2a0022-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0030-0000-bbbbbbbbbbbbbbbb", "table": "table_from_the_future", "row": "01HZX3NDEKTSV4RRFFQ69G5FC2", "column": "quantum_flavor", "value": { "nested": [1, 2, 3] }, "hlc": "018f6e2a0030-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" }
+    {
+      "id": "018f6e2a0020-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FC1",
+      "column": "title",
+      "value": "has note",
+      "hlc": "018f6e2a0020-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "EbCulTTW+C8zNAJcTDJ/ldOX9eFxC9IelMcxw8Zm7mdBPdu78/bm5xFpyBDnk/8Yfclj7p+8V8/RozVBCKQCDA=="
+    },
+    {
+      "id": "018f6e2a0021-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FC1",
+      "column": "note",
+      "value": "temporary",
+      "hlc": "018f6e2a0021-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "dkIXSLxMjWiI/5dC2ZZo3ai7hAP7JfUFsxqmo6f34IhOU1QVVCX89Mwwqd6CttdqcFcx91r89dyO5cClGHkeCA=="
+    },
+    {
+      "id": "018f6e2a0022-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FC1",
+      "column": "note",
+      "value": null,
+      "hlc": "018f6e2a0022-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "HzWXm271pRl4FM1tHQIFgUGVxhwcT4zSOoB164Y0k46knHZcu29JN8YoTRs7KNgJomy/EIa8iqf6TseEIZmWDA=="
+    },
+    {
+      "id": "018f6e2a0030-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "table_from_the_future",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FC2",
+      "column": "quantum_flavor",
+      "value": {
+        "nested": [
+          1,
+          2,
+          3
+        ]
+      },
+      "hlc": "018f6e2a0030-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "N5QhSdSk0GSzRvCx6wfzbydpsTKkDEJCeBadoimObzDUxi2Ro/sJ7tbny99JHLfFvnb2D+OFxc652M9nJtlHCQ=="
+    }
   ],
   "expectedState": {
     "table_from_the_future": {
-      "01HZX3NDEKTSV4RRFFQ69G5FC2": { "quantum_flavor": { "nested": [1, 2, 3] } }
+      "01HZX3NDEKTSV4RRFFQ69G5FC2": {
+        "quantum_flavor": {
+          "nested": [
+            1,
+            2,
+            3
+          ]
+        }
+      }
     },
     "tasks": {
-      "01HZX3NDEKTSV4RRFFQ69G5FC1": { "title": "has note" }
+      "01HZX3NDEKTSV4RRFFQ69G5FC1": {
+        "title": "has note"
+      }
     }
   },
   "expectedFrontier": {
-    "aaaaaaaaaaaaaaaa": "018f6e2a0022-0000-aaaaaaaaaaaaaaaa",
-    "bbbbbbbbbbbbbbbb": "018f6e2a0030-0000-bbbbbbbbbbbbbbbb"
+    "29de64fc1545395ccd0586fefbda3a82": "018f6e2a0022-0000-29de64fc1545395ccd0586fefbda3a82",
+    "aea35cde9fb4a91ef9b7876dbc2dac1b": "018f6e2a0030-0000-aea35cde9fb4a91ef9b7876dbc2dac1b"
   }
 }

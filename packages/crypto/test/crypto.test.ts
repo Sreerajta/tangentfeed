@@ -122,7 +122,6 @@ describe("canonicalJson (§8.1)", () => {
 describe("engine integration", () => {
   async function engine(n: number, cipher?: SpaceCipher) {
     return SyncEngine.open({
-      deviceId: n.toString(16).padStart(16, "0"),
       storage: new MemoryAdapter(),
       physicalClock: () => T0 + n,
       ...(cipher ? { cipher } : {}),
@@ -175,8 +174,11 @@ describe("engine integration", () => {
     expect(tomb.value).toBe(true); // readable by anyone
     expect(await a.get("tasks", id)).toBeUndefined();
 
-    // a keyless replica still hides the row correctly
+    // A keyless replica still hides the row correctly. "Keyless" means no
+    // *cipher* key — it still needs a's signing key, because verifying a
+    // signature never requires decrypting (§12, encrypt-then-sign).
     const blind = await engine(3);
+    blind.learnKey(a.deviceId, a.publicKey);
     await blind.applyRemoteOps(await a.opsSince({}));
     expect(await blind.get("tasks", id)).toBeUndefined();
   });
