@@ -2,18 +2,57 @@
   "name": "concurrent-cell-edits",
   "description": "PROTOCOL.md Appendix A: concurrent edits to different columns of the same row both survive; cell (not row) is the conflict unit. Must converge from ANY delivery order.",
   "ops": [
-    { "id": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAV", "column": "title", "value": "Buy milk", "hlc": "018f6e2a9c40-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a9c41-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAV", "column": "done", "value": false, "hlc": "018f6e2a9c41-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2b1000-0000-bbbbbbbbbbbbbbbb", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAV", "column": "done", "value": true, "hlc": "018f6e2b1000-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
-    { "id": "018f6e2b2222-0000-aaaaaaaaaaaaaaaa", "table": "tasks", "row": "01HZX3NDEKTSV4RRFFQ69G5FAV", "column": "title", "value": "Buy oat milk", "hlc": "018f6e2b2222-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" }
+    {
+      "id": "018f6e2a9c40-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAV",
+      "column": "title",
+      "value": "Buy milk",
+      "hlc": "018f6e2a9c40-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "b48+kVv9xR0fDQirmymBpauEloZqmk/+RT8BhZdM59WxK4/8GahcTMpc6e3uAlN7OGdcpGtclSQFkNqnUkJ9Aw=="
+    },
+    {
+      "id": "018f6e2a9c41-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAV",
+      "column": "done",
+      "value": false,
+      "hlc": "018f6e2a9c41-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "0vHbUnNF+yTMDjBswHPftphRqh6PsV/7EnqJm2Vk8tbUmG8QDcde4V17ucBfZ8/42kHXMurn7nlkumZ273BSAA=="
+    },
+    {
+      "id": "018f6e2b1000-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAV",
+      "column": "done",
+      "value": true,
+      "hlc": "018f6e2b1000-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "KiB5fBtPv2FzD+K5GIxDWbZtorBdqR8WYDJfXXlpp7F4JD+2z5Rnc56epmgVHHnbY6Ruj+t1TRWWAV4rvfTTAw=="
+    },
+    {
+      "id": "018f6e2b2222-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "tasks",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FAV",
+      "column": "title",
+      "value": "Buy oat milk",
+      "hlc": "018f6e2b2222-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "AjYbZJR+Jmk2qA7Ey94b7gFREvz2J+J6u0kSl+v5UJBcEVyOKjuw5F3rPylxHrwolx+kw192FZSfCg0JZZUZBA=="
+    }
   ],
   "expectedState": {
     "tasks": {
-      "01HZX3NDEKTSV4RRFFQ69G5FAV": { "title": "Buy oat milk", "done": true }
+      "01HZX3NDEKTSV4RRFFQ69G5FAV": {
+        "title": "Buy oat milk",
+        "done": true
+      }
     }
   },
   "expectedFrontier": {
-    "aaaaaaaaaaaaaaaa": "018f6e2b2222-0000-aaaaaaaaaaaaaaaa",
-    "bbbbbbbbbbbbbbbb": "018f6e2b1000-0000-bbbbbbbbbbbbbbbb"
+    "29de64fc1545395ccd0586fefbda3a82": "018f6e2b2222-0000-29de64fc1545395ccd0586fefbda3a82",
+    "aea35cde9fb4a91ef9b7876dbc2dac1b": "018f6e2b1000-0000-aea35cde9fb4a91ef9b7876dbc2dac1b"
   }
 }

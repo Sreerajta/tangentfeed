@@ -32,6 +32,7 @@ import {
   type BatchWrite,
   type ClockState,
   type CompactionWrite,
+  type DeviceKey,
   type Frontier,
   type Op,
   type StorageAdapter,
@@ -101,7 +102,8 @@ CREATE TABLE IF NOT EXISTS ops (
   column_name TEXT NOT NULL,
   value       TEXT NOT NULL,   -- JSON-encoded, so NULL stays distinguishable
   hlc         TEXT NOT NULL,
-  device      TEXT NOT NULL
+  device      TEXT NOT NULL,
+  sig         TEXT NOT NULL    -- base64 Ed25519, section 12
 ) WITHOUT ROWID;
 
 -- the sync hot path: "everything from device D above hlc H"
@@ -129,6 +131,7 @@ interface OpRow {
   value: string;
   hlc: string;
   device: string;
+  sig: string;
 }
 
 export class SqliteAdapter implements StorageAdapter {
@@ -156,8 +159,8 @@ export class SqliteAdapter implements StorageAdapter {
     db.exec(SCHEMA);
     this.stmts = {
       insertOp: db.prepare(
-        `INSERT OR IGNORE INTO ops (id, table_name, row_id, column_name, value, hlc, device)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR IGNORE INTO ops (id, table_name, row_id, column_name, value, hlc, device, sig)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ),
       deleteOp: db.prepare(`DELETE FROM ops WHERE id = ?`),
       upsertCell: db.prepare(
@@ -260,6 +263,25 @@ export class SqliteAdapter implements StorageAdapter {
     return this.readMeta<ClockState>("clock");
   }
 
+  // ---------- signing identity (§12) ----------
+
+  // Meta values are JSON, which has no byte-array type, so the keypair is
+  // stored hex-encoded rather than as an array of numbers — half the size and
+  // unambiguous to read back.
+
+  async getDeviceKey(): Promise<DeviceKey | undefined> {
+    const stored = this.readMeta<{ publicKey: string; privateKey: string }>("deviceKey");
+    if (!stored) return undefined;
+    return { publicKey: unhex(stored.publicKey), privateKey: unhex(stored.privateKey) };
+  }
+
+  async setDeviceKey(key: DeviceKey): Promise<void> {
+    this.writeMeta("deviceKey", {
+      publicKey: hex(key.publicKey),
+      privateKey: hex(key.privateKey),
+    });
+  }
+
   // ---------- compaction support ----------
 
   async opCount(): Promise<number> {
@@ -302,6 +324,7 @@ export class SqliteAdapter implements StorageAdapter {
           JSON.stringify(op.value),
           op.hlc,
           op.device,
+          op.sig,
         );
       }
       for (const [key, op] of batch.winners) {
@@ -350,8 +373,15 @@ function toOp(r: OpRow): Op {
     value: JSON.parse(r.value),
     hlc: r.hlc,
     device: r.device,
+    sig: r.sig,
   };
 }
 
 // re-export for convenience so callers need not import from core
 export { aboveFrontier };
+
+const hex = (b: Uint8Array): string =>
+  [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+
+const unhex = (s: string): Uint8Array =>
+  new Uint8Array((s.match(/../g) ?? []).map((h) => parseInt(h, 16)));

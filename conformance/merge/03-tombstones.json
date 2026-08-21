@@ -2,21 +2,76 @@
   "name": "tombstone-hides-row",
   "description": "§5: a winning row tombstone hides the row from materialized state even when cell writes carry HIGHER HLCs than the tombstone. Second row proves later un-deletion (tombstone overwritten with false at higher HLC) makes the row visible again with all surviving cells.",
   "ops": [
-    { "id": "018f6e2a0001-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB1", "column": "text", "value": "delete me", "hlc": "018f6e2a0001-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0002-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB1", "column": "-", "value": true, "hlc": "018f6e2a0002-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0003-0000-bbbbbbbbbbbbbbbb", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB1", "column": "text", "value": "edited after delete, still hidden", "hlc": "018f6e2a0003-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" },
-
-    { "id": "018f6e2a0010-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB2", "column": "text", "value": "phoenix", "hlc": "018f6e2a0010-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0011-0000-aaaaaaaaaaaaaaaa", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB2", "column": "-", "value": true, "hlc": "018f6e2a0011-0000-aaaaaaaaaaaaaaaa", "device": "aaaaaaaaaaaaaaaa" },
-    { "id": "018f6e2a0012-0000-bbbbbbbbbbbbbbbb", "table": "notes", "row": "01HZX3NDEKTSV4RRFFQ69G5FB2", "column": "-", "value": false, "hlc": "018f6e2a0012-0000-bbbbbbbbbbbbbbbb", "device": "bbbbbbbbbbbbbbbb" }
+    {
+      "id": "018f6e2a0001-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "notes",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FB1",
+      "column": "text",
+      "value": "delete me",
+      "hlc": "018f6e2a0001-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "RdlESUtpAJJ/nOkecw6TW03csnAw+zruemKAbVxwFn7M4RKnM64hAvKTfz7qo4lWUCZ1M6+H06n9a3bLIJZVBA=="
+    },
+    {
+      "id": "018f6e2a0002-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "notes",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FB1",
+      "column": "-",
+      "value": true,
+      "hlc": "018f6e2a0002-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "u+/Y7S1s93pNnkrOuCw83pzNRL8GDgNfIUki3dhPdJ1qEFLgvDdSE9PsDSvsaFKRjFy9zGdvlLEt5vMoc+lEDA=="
+    },
+    {
+      "id": "018f6e2a0003-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "notes",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FB1",
+      "column": "text",
+      "value": "edited after delete, still hidden",
+      "hlc": "018f6e2a0003-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "ioiTqkD53/Hda8Ae7HlGYynEAsVRKmGqmtRd7PohcG8kCZuK3VdaQPMYg42ATGqq9JEsNQB8gbx55c2UrZfkBg=="
+    },
+    {
+      "id": "018f6e2a0010-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "notes",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FB2",
+      "column": "text",
+      "value": "phoenix",
+      "hlc": "018f6e2a0010-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "v7At26U15LNcLmALtgayOpTuuRWpqvlAsVJ2NUt9HTtoESHAUgmP/bxkaxehNqJbNB8ZqCZTdkbsNTkbKQxZAw=="
+    },
+    {
+      "id": "018f6e2a0011-0000-29de64fc1545395ccd0586fefbda3a82",
+      "table": "notes",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FB2",
+      "column": "-",
+      "value": true,
+      "hlc": "018f6e2a0011-0000-29de64fc1545395ccd0586fefbda3a82",
+      "device": "29de64fc1545395ccd0586fefbda3a82",
+      "sig": "tP/givi8BXDH2r+hGJjR4NQbvujAfcyGmIU7fy7uub1mtawKrB243qhZ/DCawnSq4c5Qzz9jK8lkRGQvN7BfBQ=="
+    },
+    {
+      "id": "018f6e2a0012-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "table": "notes",
+      "row": "01HZX3NDEKTSV4RRFFQ69G5FB2",
+      "column": "-",
+      "value": false,
+      "hlc": "018f6e2a0012-0000-aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "device": "aea35cde9fb4a91ef9b7876dbc2dac1b",
+      "sig": "WhTtinuSWmysL8reFP6Z2V8CHU7jPRqwdK74fPlfRwhubdEzYcXvOGeRNHbuqSPPIDCRHQFkwNTnZzib/BVXDA=="
+    }
   ],
   "expectedState": {
     "notes": {
-      "01HZX3NDEKTSV4RRFFQ69G5FB2": { "text": "phoenix" }
+      "01HZX3NDEKTSV4RRFFQ69G5FB2": {
+        "text": "phoenix"
+      }
     }
   },
   "expectedFrontier": {
-    "aaaaaaaaaaaaaaaa": "018f6e2a0011-0000-aaaaaaaaaaaaaaaa",
-    "bbbbbbbbbbbbbbbb": "018f6e2a0012-0000-bbbbbbbbbbbbbbbb"
+    "29de64fc1545395ccd0586fefbda3a82": "018f6e2a0011-0000-29de64fc1545395ccd0586fefbda3a82",
+    "aea35cde9fb4a91ef9b7876dbc2dac1b": "018f6e2a0012-0000-aea35cde9fb4a91ef9b7876dbc2dac1b"
   }
 }

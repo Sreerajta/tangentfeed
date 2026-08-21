@@ -3,16 +3,16 @@ import { SyncEngine, syncOnce } from "../src/engine.js";
 import { MemoryAdapter } from "../src/storage.js";
 import { BadOpError, type Op } from "../src/op.js";
 import { ClockDriftError } from "../src/hlc.js";
+import { link } from "./test-keys.js";
 
 const T0 = 1_700_000_000_000;
 
 function device(n: number): string {
-  return n.toString(16).padStart(16, "0");
+  return n.toString(16).padStart(32, "0");
 }
 
 async function engine(n: number, clock?: () => number): Promise<SyncEngine> {
   return SyncEngine.open({
-    deviceId: device(n),
     storage: new MemoryAdapter(),
     physicalClock: clock ?? (() => T0),
   });
@@ -75,6 +75,7 @@ describe("applyRemoteOps", () => {
   it("is idempotent: duplicates return 0 and change nothing", async () => {
     const a = await engine(1);
     const b = await engine(2);
+    link(a, b);
     await a.insert("tasks", { title: "from a" });
     const ops = await a.opsSince({});
     expect(await b.applyRemoteOps(ops)).toBe(ops.length);
@@ -85,6 +86,7 @@ describe("applyRemoteOps", () => {
   it("atomically rejects a batch containing any bad op", async () => {
     const a = await engine(1);
     const b = await engine(2);
+    link(a, b);
     await a.insert("tasks", { title: "good" });
     const good = await a.opsSince({});
     const bad = { ...good[0]!, table: "no spaces allowed" };
@@ -95,6 +97,7 @@ describe("applyRemoteOps", () => {
   it("rejects ops beyond MAX_DRIFT and applies nothing (§4.5)", async () => {
     const a = await engine(1, () => T0 + 10 * 60_000); // clock 10 min ahead
     const b = await engine(2, () => T0);
+    link(a, b);
     await a.insert("tasks", { title: "from the future" });
     const ops = await a.opsSince({});
     await expect(b.applyRemoteOps(ops)).rejects.toThrow(ClockDriftError);
@@ -106,6 +109,7 @@ describe("applyRemoteOps", () => {
     let tB = T0; //          B's clock is behind
     const a = await engine(1, () => tA);
     const b = await engine(2, () => tB);
+    link(a, b);
 
     const id = await a.insert("tasks", { title: "A's version" });
     await syncOnce(a, b);
@@ -120,7 +124,6 @@ describe("applyRemoteOps", () => {
   it("persists clock state so a restart cannot reissue timestamps", async () => {
     const storage = new MemoryAdapter();
     const e1 = await SyncEngine.open({
-      deviceId: device(1),
       storage,
       physicalClock: () => T0,
     });
@@ -129,7 +132,6 @@ describe("applyRemoteOps", () => {
 
     // "restart" on the same storage, same frozen wall clock
     const e2 = await SyncEngine.open({
-      deviceId: device(1),
       storage,
       physicalClock: () => T0,
     });
@@ -144,6 +146,7 @@ describe("two-engine sync scenarios", () => {
   it("offline concurrent edits to different cells both survive", async () => {
     const a = await engine(1, () => T0);
     const b = await engine(2, () => T0 + 1);
+    link(a, b);
     const id = await a.insert("tasks", { title: "Buy milk", done: false });
     await syncOnce(a, b);
 
@@ -160,6 +163,7 @@ describe("two-engine sync scenarios", () => {
   it("delete vs concurrent edit: tombstone hides the row on both peers", async () => {
     const a = await engine(1, () => T0);
     const b = await engine(2, () => T0);
+    link(a, b);
     const id = await a.insert("tasks", { title: "contested" });
     await syncOnce(a, b);
 

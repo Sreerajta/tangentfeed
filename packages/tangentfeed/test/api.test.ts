@@ -6,6 +6,7 @@
 
 import { describe, it, expect, afterEach } from "vitest";
 import { openSpace, broadcast, type SyncedSpace } from "../src/index.js";
+import { MemoryAdapter } from "@tangentfeed/core";
 
 let open: SyncedSpace[] = [];
 afterEach(async () => {
@@ -34,11 +35,20 @@ describe("openSpace", () => {
     expect(await db.list("tasks")).toEqual([]);
   });
 
-  it("generates a deviceId, or accepts one you provide", async () => {
+  it("derives its deviceId from a keypair it persists", async () => {
+    // There is no deviceId option any more: an identity cannot be asserted,
+    // only proved by a key (§4.3). It is 32 hex characters now, not 16.
     const auto = await space(freshSpace());
-    expect(auto.deviceId).toMatch(/^[0-9a-f]{16}$/);
-    const fixed = await space(freshSpace(), { deviceId: "abcdef0123456789" });
-    expect(fixed.deviceId).toBe("abcdef0123456789");
+    expect(auto.deviceId).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("keeps the same identity when the same storage is reopened", async () => {
+    const storage = new MemoryAdapter();
+    const first = await openSpace({ space: "identity", storage });
+    const second = await openSpace({ space: "identity", storage });
+    expect(second.deviceId).toBe(first.deviceId);
+    await first.close();
+    await second.close();
   });
 
   it("syncs two spaces over the broadcast transport", async () => {

@@ -21,7 +21,6 @@ function freshSpace(): string {
 
 async function peer(space: string, n: number, skewMs = 0) {
   const engine = await SyncEngine.open({
-    deviceId: n.toString(16).padStart(16, "0"),
     storage: new MemoryAdapter(),
     physicalClock: () => T0 + Date.now() % 1000 + skewMs,
   });

@@ -4,16 +4,19 @@ export {
   encodeHlc,
   decodeHlc,
   compareHlc,
-  generateDeviceId,
   isValidDeviceId,
   MAX_COUNTER,
   MAX_MILLIS,
   MAX_DRIFT_MS,
+  DEVICE_ID_HEX,
+  HLC_LENGTH,
   type Hlc,
 } from "./hlc.js";
 export {
   BadOpError,
   validateOp,
+  signedPayload,
+  verifyOp,
   aboveFrontier,
   advanceFrontier,
   TOMBSTONE_COLUMN,
@@ -63,3 +66,12 @@ export {
   type CompactionStats,
 } from "./compaction.js";
 export type { CompactionWrite } from "./storage.js";
+export {
+  SIGNING_DOMAIN,
+  canonicalJson,
+  deviceIdFromPublicKey,
+  generateDeviceKey,
+  signPayload,
+  verifyPayload,
+  type DeviceKey,
+} from "./signing.js";

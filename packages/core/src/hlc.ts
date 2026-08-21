@@ -2,7 +2,7 @@
  * Hybrid Logical Clock — PROTOCOL.md §4
  *
  * State: (millis, counter, deviceId).
- * String form: 12-hex millis + "-" + 4-hex counter + "-" + 16-hex deviceId,
+ * String form: 12-hex millis + "-" + 4-hex counter + "-" + 32-hex deviceId,
  * fixed 34 chars, lexicographic order === logical order.
  */
 
@@ -26,25 +26,15 @@ export class ClockDriftError extends Error {
   }
 }
 
-const DEVICE_ID_RE = /^[0-9a-f]{16}$/;
-const HLC_STRING_RE = /^[0-9a-f]{12}-[0-9a-f]{4}-[0-9a-f]{16}$/;
+/** deviceId is 32 lowercase hex characters — 128 bits. §4.3 */
+export const DEVICE_ID_HEX = 32;
 
-/** Generate a fresh 64-bit deviceId (16 lowercase hex chars). §4.3 */
-export function generateDeviceId(
-  randomBytes: (n: number) => Uint8Array = defaultRandomBytes,
-): string {
-  const b = randomBytes(8);
-  let s = "";
-  for (const byte of b) s += byte.toString(16).padStart(2, "0");
-  return s;
-}
+/** 12 + 1 + 4 + 1 + 32. §4.2 */
+export const HLC_LENGTH = 50;
 
-function defaultRandomBytes(n: number): Uint8Array {
-  const b = new Uint8Array(n);
-  // globalThis.crypto exists in browsers, Node >= 19, Deno, Bun, workers.
-  globalThis.crypto.getRandomValues(b);
-  return b;
-}
+const DEVICE_ID_RE = /^[0-9a-f]{32}$/;
+const HLC_STRING_RE = /^[0-9a-f]{12}-[0-9a-f]{4}-[0-9a-f]{32}$/;
+
 
 export function isValidDeviceId(s: string): boolean {
   return DEVICE_ID_RE.test(s);

@@ -6,17 +6,19 @@ import {
   encodeHlc,
   decodeHlc,
   compareHlc,
-  generateDeviceId,
   isValidDeviceId,
   MAX_COUNTER,
   MAX_DRIFT_MS,
   type Hlc,
 } from "../src/hlc.js";
+import { deviceIdFromPublicKey, generateDeviceKey } from "../src/signing.js";
 
 // ---------- arbitraries ----------
 
+// 16 bytes, not 8: deviceId widened to 128 bits when it became the thing a
+// signature is checked against (§4.3).
 const arbDeviceId = fc
-  .uint8Array({ minLength: 8, maxLength: 8 })
+  .uint8Array({ minLength: 16, maxLength: 16 })
   .map((b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join(""));
 
 // millis capped at 2^46 (~year 4200): any HLC beyond a real clock + MAX_DRIFT
@@ -61,10 +63,10 @@ describe("encoding", () => {
     );
   });
 
-  it("is fixed-width 34 chars", () => {
+  it("is fixed-width 50 chars", () => {
     fc.assert(
       fc.property(arbHlc, (h) => {
-        expect(encodeHlc(h)).toHaveLength(34);
+        expect(encodeHlc(h)).toHaveLength(50);
       }),
     );
   });
@@ -73,9 +75,9 @@ describe("encoding", () => {
     for (const bad of [
       "",
       "zzz",
-      "018f6e2a9c40-0003-a1b2c3d4e5f6071", // deviceId too short
-      "018f6e2a9c40-0003-A1B2C3D4E5F60718", // uppercase
-      "018f6e2a9c400003a1b2c3d4e5f60718", // no dashes
+      "018f6e2a9c40-0003-a1b2c3d4e5f60718", // v0.1 width, too short now
+      "018f6e2a9c40-0003-A1B2C3D4E5F60718A1B2C3D4E5F60718", // uppercase
+      "018f6e2a9c400003a1b2c3d4e5f60718a1b2c3d4e5f60718", // no dashes
     ]) {
       expect(() => decodeHlc(bad)).toThrow();
     }
@@ -154,7 +156,7 @@ describe("now()", () => {
 
   it("issues unique timestamps under a completely frozen clock (counter path)", () => {
     const clk = new HybridLogicalClock({
-      deviceId: "aaaaaaaaaaaaaaaa",
+      deviceId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       physicalClock: () => 1_000,
     });
     const seen = new Set<string>();
@@ -167,7 +169,7 @@ describe("now()", () => {
 
   it("counter overflow rolls into millis (§4.1)", () => {
     const clk = new HybridLogicalClock({
-      deviceId: "aaaaaaaaaaaaaaaa",
+      deviceId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       physicalClock: () => 500,
       millis: 500,
       counter: MAX_COUNTER,
@@ -234,7 +236,7 @@ describe("receive()", () => {
 
   it("rejects timestamps more than MAX_DRIFT ahead (§4.5)", () => {
     const clk = new HybridLogicalClock({
-      deviceId: "aaaaaaaaaaaaaaaa",
+      deviceId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       physicalClock: () => 1_000_000,
     });
     const evil: Hlc = {
@@ -271,7 +273,7 @@ describe("simulation: N devices exchanging timestamps", () => {
           const clocks = Array.from({ length: n }, (_, i) => {
             const skew = ((i * 7919) % 20_000) - 10_000; // fixed per-device skew
             return new HybridLogicalClock({
-              deviceId: i.toString(16).padStart(16, "0"),
+              deviceId: i.toString(16).padStart(32, "0"),
               physicalClock: () => base + step * 10 + skew,
             });
           });
@@ -317,14 +319,16 @@ describe("simulation: N devices exchanging timestamps", () => {
 // ---------- deviceId ----------
 
 describe("deviceId", () => {
-  it("generates valid ids", () => {
+  it("accepts a derived id", () => {
+    // Identity comes from a key now (§4.3); the only thing left to check is
+    // that what we derive is what we accept.
     for (let i = 0; i < 100; i++) {
-      expect(isValidDeviceId(generateDeviceId())).toBe(true);
+      expect(isValidDeviceId(deviceIdFromPublicKey(generateDeviceKey().publicKey))).toBe(true);
     }
   });
 
   it("constructor rejects invalid deviceIds", () => {
-    for (const bad of ["", "short", "A1B2C3D4E5F60718", "a1b2c3d4e5f6071g"]) {
+    for (const bad of ["", "short", "A1B2C3D4E5F60718", "a1b2c3d4e5f6071g", "a1b2c3d4e5f60718"]) {
       expect(
         () => new HybridLogicalClock({ deviceId: bad }),
       ).toThrow();

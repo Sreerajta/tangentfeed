@@ -25,6 +25,7 @@ import { scrypt } from "@noble/hashes/scrypt.js";
 import {
   CIPHER_PREFIX,
   DecryptError,
+  canonicalJson,
   isEncryptedValue,
   type Cipher,
   type Json,
@@ -101,17 +102,6 @@ export class SpaceCipher implements Cipher {
   }
 }
 
-/** Canonical JSON per §8.1: sorted object keys, no whitespace. */
-export function canonicalJson(value: Json): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return "[" + value.map(canonicalJson).join(",") + "]";
-  const keys = Object.keys(value).sort();
-  return (
-    "{" +
-    keys.map((k) => JSON.stringify(k) + ":" + canonicalJson(value[k] as Json)).join(",") +
-    "}"
-  );
-}
 
 async function scryptAsync(pw: Uint8Array, salt: Uint8Array): Promise<Uint8Array> {
   // interactive parameters: ~100ms on a laptop, tolerable on phones
@@ -134,3 +124,15 @@ function base64Decode(s: string): Uint8Array {
   }
   return new Uint8Array(Buffer.from(s, "base64"));
 }
+
+// Signing lives in core so the dependency graph stays acyclic; re-exported
+// here so this package's public API is unchanged.
+export {
+  SIGNING_DOMAIN,
+  canonicalJson,
+  deviceIdFromPublicKey,
+  generateDeviceKey,
+  signPayload,
+  verifyPayload,
+  type DeviceKey,
+} from "@tangentfeed/core";

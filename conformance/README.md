@@ -18,6 +18,7 @@ verify at each step, and lists the traps.
 | `canonical/` | RFC 8785 canonicalization, including cases that differ across languages | §8.1 |
 | `merge/` | Cell-level LWW, tiebreaks, tombstones, null and unknown, encrypted values | §3, §5, §10 |
 | `session/` | Frontier exchange and diff between two peers | §6 |
+| `signatures/` | Ed25519 op signatures, domain separation, and the tampering cases that must be rejected | §12 |
 
 `merge/` has its own stricter contract — the ordering matrix below. The other
 directories are straightforward case lists whose shape is documented in each
@@ -72,6 +73,7 @@ which runs the same vectors against a completely different storage engine.
 | `hlc/02-send-receive.json` | Send and receive rules, counter overflow rollover, and drift rejection at and beyond the limit |
 | `canonical/01-rfc8785.json` | RFC 8785, including UTF-16 key ordering, ECMAScript number forms, and escape choices |
 | `session/01-two-party-catchup.json` | Which ops a peer must send for a given advertised frontier, and the state both peers converge on |
+| `signatures/01-op-signatures.json` | Signatures over canonical JSON with domain separation; seven tampering cases that must all be refused |
 | `merge/01-concurrent-cell-edits.json` | Cell-level (not row-level) conflict resolution: concurrent edits to different columns both survive |
 | `merge/02-same-cell-lww-tiebreak.json` | Same-cell LWW by HLC, including the deviceId tiebreak at identical timestamps |
 | `merge/03-tombstones.json` | Deleted rows stay hidden even against later higher-HLC cell writes; un-deletion restores surviving cells |
@@ -93,6 +95,15 @@ ambiguous while implementing. A good vector:
 - pins down exactly one rule, and says which section of `PROTOCOL.md` it comes from
 - includes operations in a deliberately unhelpful order
 - uses realistic HLC strings so string-comparison ordering is exercised
+
+## Key material
+
+`test-keys.json` holds the keypairs the vectors are signed with, derived
+deterministically so any implementation reproduces them. A harness must learn
+these before replaying anything: an op from a device whose key is unknown is
+rejected (§12), which is the same exchange a real peer performs.
+
+They are public by construction and must never be used for real data.
 
 ## Not yet covered
 

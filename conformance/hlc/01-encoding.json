@@ -5,54 +5,70 @@
   "encode": [
     {
       "description": "zero state",
-      "hlc": { "millis": 0, "counter": 0, "deviceId": "aaaaaaaaaaaaaaaa" },
-      "expected": "000000000000-0000-aaaaaaaaaaaaaaaa"
+      "hlc": {
+        "millis": 0,
+        "counter": 0,
+        "deviceId": "29de64fc1545395ccd0586fefbda3a82"
+      },
+      "expected": "000000000000-0000-29de64fc1545395ccd0586fefbda3a82"
     },
     {
       "description": "typical timestamp, hex is lowercase and zero-padded",
-      "hlc": { "millis": 1700000000000, "counter": 3, "deviceId": "a1b2c3d4e5f60718" },
-      "expected": "018bcfe56800-0003-a1b2c3d4e5f60718"
+      "hlc": {
+        "millis": 1700000000000,
+        "counter": 3,
+        "deviceId": "510da01a01b173ed5242ce23ab041602"
+      },
+      "expected": "018bcfe56800-0003-510da01a01b173ed5242ce23ab041602"
     },
     {
       "description": "counter at its maximum, 0xFFFF",
-      "hlc": { "millis": 1700000000000, "counter": 65535, "deviceId": "a1b2c3d4e5f60718" },
-      "expected": "018bcfe56800-ffff-a1b2c3d4e5f60718"
+      "hlc": {
+        "millis": 1700000000000,
+        "counter": 65535,
+        "deviceId": "510da01a01b173ed5242ce23ab041602"
+      },
+      "expected": "018bcfe56800-ffff-510da01a01b173ed5242ce23ab041602"
     },
     {
       "description": "maximum representable millis, 2^48 - 1",
-      "hlc": { "millis": 281474976710655, "counter": 0, "deviceId": "ffffffffffffffff" },
-      "expected": "ffffffffffff-0000-ffffffffffffffff"
+      "hlc": {
+        "millis": 281474976710655,
+        "counter": 0,
+        "deviceId": "685674d4d9b4f232499fd2bd148b199d"
+      },
+      "expected": "ffffffffffff-0000-685674d4d9b4f232499fd2bd148b199d"
     }
   ],
   "compare": [
     {
       "description": "millis dominates counter",
-      "a": "018bcfe56800-ffff-aaaaaaaaaaaaaaaa",
-      "b": "018bd6f3d801-0000-aaaaaaaaaaaaaaaa",
+      "a": "018bcfe56800-ffff-29de64fc1545395ccd0586fefbda3a82",
+      "b": "018bd6f3d801-0000-29de64fc1545395ccd0586fefbda3a82",
       "expected": -1
     },
     {
       "description": "counter breaks ties within the same millisecond",
-      "a": "018bcfe56800-0001-aaaaaaaaaaaaaaaa",
-      "b": "018bcfe56800-0002-aaaaaaaaaaaaaaaa",
+      "a": "018bcfe56800-0001-29de64fc1545395ccd0586fefbda3a82",
+      "b": "018bcfe56800-0002-29de64fc1545395ccd0586fefbda3a82",
       "expected": -1
     },
     {
       "description": "deviceId is the final tiebreaker at identical (millis, counter)",
-      "a": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
-      "b": "018bcfe56800-0000-ffffffffffffffff",
+      "a": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+      "b": "018bcfe56800-0000-685674d4d9b4f232499fd2bd148b199d",
       "expected": -1
     },
     {
       "description": "identical strings compare equal",
-      "a": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
-      "b": "018bcfe56800-0000-aaaaaaaaaaaaaaaa",
+      "a": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+      "b": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
       "expected": 0
     },
     {
       "description": "zero-padding is what makes bytewise comparison correct: without it, millis 0xff would sort after 0x100",
-      "a": "0000000000ff-0000-aaaaaaaaaaaaaaaa",
-      "b": "000000000100-0000-aaaaaaaaaaaaaaaa",
+      "a": "0000000000ff-0000-29de64fc1545395ccd0586fefbda3a82",
+      "b": "000000000100-0000-29de64fc1545395ccd0586fefbda3a82",
       "expected": -1
     }
   ],

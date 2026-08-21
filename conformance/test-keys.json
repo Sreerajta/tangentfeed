@@ -1,0 +1,26 @@
+{
+  "name": "test-keys",
+  "description": "Key material for the conformance vectors. Derived deterministically from the v0.1 device ids so the mapping is stable and reproducible. These keys are public by construction and must never be used for real data.",
+  "keys": {
+    "29de64fc1545395ccd0586fefbda3a82": {
+      "publicKey": "3dbd900b38ffcf074e9d6c63745c0a7e3b66476e69d3dc9563d68a3cc59db3d8",
+      "privateKey": "9dda1ed01cabf42704b234624fdf6172e2c5ab05fa66b81a9f6b8c6be8ac4e1e"
+    },
+    "aea35cde9fb4a91ef9b7876dbc2dac1b": {
+      "publicKey": "fcb2178b06304bd7b363d0e79826e0ab18815f7d528aae8a5dd0fff948a88ee5",
+      "privateKey": "0a0c1e30c72b03f1035abaefca38b676a86666d08b94532e67ad02f11ec4adee"
+    },
+    "685674d4d9b4f232499fd2bd148b199d": {
+      "publicKey": "622f1bd009c3750340ac416c5bb34e41106ffe63bfaf7d15e149d9110270c659",
+      "privateKey": "b69f31964a9274de4e8c49e23fdae788b812e2b5827bb394f9707046f8325116"
+    },
+    "6de7331041aeb11a47b90ce47a28cf16": {
+      "publicKey": "abb10b23f8f4e1f490159c38391018f13a0b0c07a258d4a788d6b9c66922a191",
+      "privateKey": "c3e71dfab9bb937199681491cbcce26cb81ee5c110b5a457f7a4c03fd6ec5750"
+    },
+    "510da01a01b173ed5242ce23ab041602": {
+      "publicKey": "661677fb6cea76a7ce0fc625756e3850682d5dff52983529602201397a9fb243",
+      "privateKey": "442976b34eb9d79523b64e0ff844b38969c473fd538aba799e904f5b21f43d2a"
+    }
+  }
+}
