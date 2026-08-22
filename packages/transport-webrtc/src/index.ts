@@ -26,6 +26,18 @@ type PeerConnectCb = (peerId?: string) => void;
 
 export type SignalingState = "connecting" | "connected" | "disconnected" | "conflict";
 
+/**
+ * Public STUN, used when the caller supplies no `iceServers`.
+ *
+ * STUN only discovers your public address; it cannot relay. Two peers behind
+ * symmetric NAT will still fail to connect, and for those you need a TURN
+ * server — which relays traffic and therefore costs bandwidth, which is why
+ * there is no public default for it. See docs/TURN.md.
+ */
+export const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+];
+
 export interface WebRTCTransportOptions {
   space: string;
   deviceId: string;
@@ -35,6 +47,12 @@ export interface WebRTCTransportOptions {
   wrtc?: { RTCPeerConnection: typeof RTCPeerConnection };
   /** WebSocket constructor; defaults to globalThis.WebSocket */
   WebSocketImpl?: typeof WebSocket;
+  /**
+   * Passed straight to RTCPeerConnection. Omit `iceServers` and you get
+   * DEFAULT_ICE_SERVERS — a public STUN server, enough for two peers behind
+   * ordinary home routers and not enough for symmetric NAT or strict
+   * corporate firewalls. Those need TURN; see docs/TURN.md.
+   */
   rtcConfig?: RTCConfiguration;
   /** called on non-fatal internal errors (a peer failing, signaling drop) */
   onError?: (err: unknown, ctx: { peer?: string }) => void;
@@ -219,7 +237,13 @@ export class WebRTCTransport implements Transport {
 
   private async ensurePeer(peerId: string): Promise<void> {
     if (!peerId || peerId === this.opts.deviceId || this.peers.has(peerId)) return;
-    const pc = new this.RTCPC(this.opts.rtcConfig ?? {});
+    // Without iceServers there are no reflexive candidates at all, so two
+    // peers only connect if they are already on the same network.
+    const config: RTCConfiguration = {
+      iceServers: DEFAULT_ICE_SERVERS,
+      ...this.opts.rtcConfig,
+    };
+    const pc = new this.RTCPC(config);
     const peer: Peer = { pc, pendingCandidates: [], remoteDescSet: false };
     this.peers.set(peerId, peer);
 

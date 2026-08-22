@@ -104,6 +104,9 @@ it. Remove that line once the port lands.
 
 ## 3. Known correctness gaps
 
+~~The Dart implementation lagging protocol v0.2~~ — ported; 137 tests green and
+the Dart CI job is enabled.
+
 | Gap | Where | Consequence |
 |---|---|---|
 | Compaction has no conformance vectors | protocol + both implementations | The subtlest logic in the system is unverified across implementations |
@@ -114,17 +117,23 @@ it. Remove that line once the port lands.
 
 ---
 
-## 4. NAT traversal is unproven, and there is no TURN
+## 4. NAT traversal — configurable now, still unproven
 
-Every sync test so far — including the iPhone run — had both peers on one
-local network, so ICE found a direct path.
+**Fixed:** the TypeScript transport had *no* `iceServers` default at all, so it
+could not traverse any NAT. It now defaults to public STUN, matching Flutter.
+Both transports accept TURN configuration, and `docs/TURN.md` covers running
+coturn, the `denied-peer-ip` rules that stop a TURN server becoming a pivot
+into your private network, and why static credentials in an app bundle are
+published credentials.
 
-Two users on different networks is the *normal* case in production, and it
-frequently requires a TURN relay. There is no TURN configuration, no
-documentation of it, and no evidence the transport works across networks.
+**Still open:** no TURN server has been run against either implementation and
+no cross-network sync has been demonstrated. Roughly 10–20% of real connections
+need a relay, and the failure mode is silence — fine on your LAN, never
+connects for a user elsewhere.
 
-Needed: TURN server configuration in both transports, documentation of what
-operators must run, and a test across two real networks.
+The check that settles it is in `docs/TURN.md`: set
+`iceTransportPolicy: "relay"` and confirm sync still works. That forces the
+relay path instead of letting ICE quietly succeed via a direct one.
 
 ---
 
