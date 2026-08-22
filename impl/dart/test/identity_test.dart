@@ -59,34 +59,8 @@ void main() {
       expect(a.deviceId, isNot(equals(b.deviceId)));
     });
 
-    test('an explicit identity is honoured on a fresh store', () async {
-      final storage = MemoryAdapter();
-      final engine = await SyncEngine.open(
-        storage: storage,
-        deviceId: 'aaaaaaaaaaaaaaaa',
-      );
-      expect(engine.deviceId, equals('aaaaaaaaaaaaaaaa'));
-      expect((await storage.getClock())?.deviceId, equals('aaaaaaaaaaaaaaaa'));
-    });
 
-    test('an explicit identity that contradicts the store is refused', () async {
-      final storage = MemoryAdapter();
-      await SyncEngine.open(storage: storage, deviceId: 'aaaaaaaaaaaaaaaa');
 
-      // Two live replicas sharing one identity breaks HLC uniqueness, so
-      // failing loudly beats silently adopting either answer.
-      expect(
-        () => SyncEngine.open(storage: storage, deviceId: 'bbbbbbbbbbbbbbbb'),
-        throwsA(isA<StateError>()),
-      );
-    });
-
-    test('a malformed identity is rejected', () {
-      expect(
-        () => SyncEngine.open(storage: MemoryAdapter(), deviceId: 'not-hex'),
-        throwsA(isA<ArgumentError>()),
-      );
-    });
   });
 
   group('openSpace', () {

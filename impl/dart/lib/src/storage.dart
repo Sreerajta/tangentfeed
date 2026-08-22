@@ -6,6 +6,7 @@
 library;
 
 import 'hlc.dart';
+import 'signing.dart';
 import 'op.dart';
 
 /// One atomic unit of work: log append, cell updates and frontier advance.
@@ -77,6 +78,14 @@ abstract class StorageAdapter {
 
   Future<Hlc?> getClock();
 
+  /// The device's signing keypair, or null on a fresh store. Section 12.
+  ///
+  /// Stored in the clear beside the data it protects. On a device this belongs
+  /// in Keychain or Keystore; the space secret already carries the same
+  /// exposure, so this does not widen it.
+  Future<DeviceKey?> getDeviceKey();
+  Future<void> setDeviceKey(DeviceKey key);
+
   /// Atomic, all-or-nothing. Section 8.2.
   Future<void> applyBatch(BatchWrite batch);
 
@@ -95,6 +104,7 @@ class MemoryAdapter implements StorageAdapter {
   final Map<CellKey, Op> _winners = {};
   Frontier _frontier = {};
   Hlc? _clock;
+  DeviceKey? _deviceKey;
 
   @override
   Future<Map<String, Op>?> getRow(String table, String row) async {
@@ -140,6 +150,12 @@ class MemoryAdapter implements StorageAdapter {
 
   @override
   Future<Frontier> getFrontier() async => Map.of(_frontier);
+
+  @override
+  Future<DeviceKey?> getDeviceKey() async => _deviceKey;
+
+  @override
+  Future<void> setDeviceKey(DeviceKey key) async => _deviceKey = key;
 
   @override
   Future<Hlc?> getClock() async => _clock;

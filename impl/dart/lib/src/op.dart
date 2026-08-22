@@ -3,7 +3,11 @@ library;
 
 import 'dart:convert';
 
+import 'dart:typed_data';
+
+import 'canonical.dart';
 import 'hlc.dart';
+import 'signing.dart';
 
 /// The reserved column carrying a row tombstone. Section 5.
 const String tombstoneColumn = '-';
@@ -35,6 +39,7 @@ class Op {
     required this.value,
     required this.hlc,
     required this.device,
+    required this.sig,
   });
 
   final String id;
@@ -44,6 +49,9 @@ class Op {
   final Object? value;
   final String hlc;
   final String device;
+
+  /// Base64 Ed25519 signature over signedPayload(op). Section 12.
+  final String sig;
 
   bool get isTombstone => column == tombstoneColumn;
 
@@ -55,6 +63,7 @@ class Op {
         'value': value,
         'hlc': hlc,
         'device': device,
+        'sig': sig,
       };
 
   /// Parses and validates an op as it appears on the wire.
@@ -77,6 +86,7 @@ class Op {
       value: raw['value'],
       hlc: str('hlc'),
       device: str('device'),
+      sig: str('sig'),
     );
     op.validate();
     return op;
@@ -158,3 +168,44 @@ Frontier advanceFrontier(Frontier frontier, Op op) {
   }
   return frontier;
 }
+
+/// The exact bytes a signature covers: the domain, then the canonical JSON of
+/// every field except `sig` itself.
+///
+/// `sig` is excluded because including it would require knowing the signature
+/// before computing it, and because a verifier can then rebuild the payload
+/// from the op it received with nothing extra to agree on.
+Uint8List signedPayload({
+  required String id,
+  required String table,
+  required String row,
+  required String column,
+  required Object? value,
+  required String hlc,
+  required String device,
+}) {
+  final canonical = canonicalJson(<String, Object?>{
+    'id': id,
+    'table': table,
+    'row': row,
+    'column': column,
+    'value': value,
+    'hlc': hlc,
+    'device': device,
+  });
+  return Uint8List.fromList(utf8.encode(signingDomain + canonical));
+}
+
+Uint8List signedPayloadOf(Op op) => signedPayload(
+      id: op.id,
+      table: op.table,
+      row: op.row,
+      column: op.column,
+      value: op.value,
+      hlc: op.hlc,
+      device: op.device,
+    );
+
+/// Whether `op.sig` is a valid signature by [publicKey]. Section 12.
+Future<bool> verifyOp(Op op, Uint8List publicKey) =>
+    verifyPayload(signedPayloadOf(op), op.sig, publicKey);

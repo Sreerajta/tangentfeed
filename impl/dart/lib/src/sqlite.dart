@@ -13,7 +13,10 @@ library;
 
 import 'dart:convert';
 
+import 'dart:typed_data';
+
 import 'hlc.dart';
+import 'signing.dart';
 import 'op.dart';
 import 'storage.dart';
 
@@ -41,7 +44,8 @@ CREATE TABLE IF NOT EXISTS ops (
   column_name TEXT NOT NULL,
   value       TEXT NOT NULL,
   hlc         TEXT NOT NULL,
-  device      TEXT NOT NULL
+  device      TEXT NOT NULL,
+  sig         TEXT NOT NULL    -- base64 Ed25519, section 12
 );
 ''';
 
@@ -90,6 +94,7 @@ class SqliteAdapter implements StorageAdapter {
         value: _decodeOpJson(row['value']! as String)['v'],
         hlc: row['hlc']! as String,
         device: row['device']! as String,
+        sig: row['sig']! as String,
       );
 
   static String _encodeValue(Object? v) => jsonEncode({'v': v});
@@ -164,6 +169,33 @@ class SqliteAdapter implements StorageAdapter {
   }
 
   @override
+  Future<DeviceKey?> getDeviceKey() async {
+    final rows = await _db.query("SELECT value FROM meta WHERE key = 'deviceKey'");
+    if (rows.isEmpty) return null;
+    final m = jsonDecode(rows.first['value']! as String) as Map<String, Object?>;
+    return DeviceKey(
+      publicKey: _unhex(m['publicKey']! as String),
+      privateKey: _unhex(m['privateKey']! as String),
+    );
+  }
+
+  @override
+  Future<void> setDeviceKey(DeviceKey key) async {
+    // meta values are JSON, which has no byte-array type, so hex rather than
+    // an array of numbers: half the size and unambiguous to read back.
+    await _db.execute(
+      "INSERT INTO meta (key, value) VALUES ('deviceKey', ?) "
+      'ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      [
+        jsonEncode({
+          'publicKey': _hex(key.publicKey),
+          'privateKey': _hex(key.privateKey),
+        })
+      ],
+    );
+  }
+
+  @override
   Future<Hlc?> getClock() async {
     final rows = await _db.query("SELECT value FROM meta WHERE key = 'clock'");
     if (rows.isEmpty) return null;
@@ -176,8 +208,8 @@ class SqliteAdapter implements StorageAdapter {
         for (final op in batch.ops) {
           await txn.execute(
             'INSERT OR IGNORE INTO ops '
-            '(id, table_name, row_id, column_name, value, hlc, device) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?)',
+            '(id, table_name, row_id, column_name, value, hlc, device, sig) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
               op.id,
               op.table,
@@ -186,6 +218,7 @@ class SqliteAdapter implements StorageAdapter {
               _encodeValue(op.value),
               op.hlc,
               op.device,
+              op.sig,
             ],
           );
         }
@@ -240,3 +273,10 @@ class SqliteAdapter implements StorageAdapter {
 
   Future<void> close() => _db.close();
 }
+
+String _hex(Uint8List b) =>
+    b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+
+Uint8List _unhex(String s) => Uint8List.fromList(
+      [for (final m in RegExp('..').allMatches(s)) int.parse(m.group(0)!, radix: 16)],
+    );

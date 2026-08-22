@@ -86,13 +86,6 @@ jobs:
   dart:
     name: Dart
     runs-on: ubuntu-latest
-    # The Dart implementation has not been ported to protocol v0.2 yet: it
-    # predates signed operations and the 128-bit deviceId, so it fails against
-    # the regenerated vectors. Enabling this job before the port would train
-    # everyone to ignore a red tick, which is worse than not running it.
-    #
-    # Remove this line once impl/dart passes.
-    if: false
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1

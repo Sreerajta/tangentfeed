@@ -6,12 +6,13 @@
 library;
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:convert';
 
 import 'engine.dart';
 import 'op.dart';
 
-const int wireVersion = 1;
+const int wireVersion = 2;
 
 /// Ops per `ops` message. Section 6 recommends <= 500.
 const int opsPerMessage = 500;
@@ -92,7 +93,12 @@ class Replicator {
       'v': wireVersion,
       'space': space,
       'clock': (await engine.frontier())[engine.deviceId] ?? '',
+      'key': _hex(engine.publicKey),
     }, peer: peer);
+
+    // Keys before ops, always: an op from a device whose key the receiver does
+    // not hold is rejected (section 12).
+    await _sendKeys(peer);
 
     await transport.send({
       't': 'since',
@@ -106,7 +112,25 @@ class Replicator {
         if (message['space'] != space) {
           throw StateError('SPACE_MISMATCH: peer is in space ${message['space']}');
         }
+        final key = message['key'];
+        if (key is String) engine.learnKey(peer, _unhex(key));
+
+        final isNew = !_peerFrontiers.containsKey(peer);
         _peerFrontiers.putIfAbsent(peer, () => <String, String>{});
+
+        // Greet back the first time we hear from someone. Our own hello may
+        // have been sent before they were listening — which is the normal case
+        // when one peer starts first — and without this they would never learn
+        // our key and would reject every op we send.
+        if (isNew) await _greet(peer);
+
+      case 'keys':
+        final entries = (message['keys'] as Map?) ?? const {};
+        for (final e in entries.entries) {
+          // learnKey discards anything that does not hash to its claimed id,
+          // so a peer cannot invent a key for somebody else.
+          engine.learnKey(e.key as String, _unhex(e.value as String));
+        }
 
       case 'since':
         final have = (message['have'] as Map?)?.cast<String, String>() ?? {};
@@ -137,6 +161,7 @@ class Replicator {
 
   Future<void> _sendOpsSince(String peer, Frontier have) async {
     final ops = await engine.opsSince(have);
+    if (ops.isNotEmpty) await _sendKeys(peer);
     for (var i = 0; i < ops.length; i += opsPerMessage) {
       final end = (i + opsPerMessage).clamp(0, ops.length);
       await transport.send({
@@ -144,6 +169,13 @@ class Replicator {
         'ops': [for (final op in ops.sublist(i, end)) op.toJson()],
       }, peer: peer);
     }
+  }
+
+  /// Every key we hold, so a peer can verify anything we forward.
+  Future<void> _sendKeys(String? peer) async {
+    final keys = <String, String>{};
+    engine.knownKeys().forEach((id, k) => keys[id] = _hex(k));
+    await transport.send({'t': 'keys', 'keys': keys}, peer: peer);
   }
 
   Future<void> _broadcast(List<Op> ops) async {
@@ -166,6 +198,10 @@ class Replicator {
 
 /// Convenience for tests and for a one-shot sync between two local replicas.
 Future<void> syncOnce(SyncEngine a, SyncEngine b) async {
+  // Keys before ops, mirroring section 6.1.
+  a.knownKeys().forEach(b.learnKey);
+  b.knownKeys().forEach(a.learnKey);
+
   final fa = await a.frontier();
   final fb = await b.frontier();
   final aToB = await a.opsSince(fb);
@@ -177,3 +213,10 @@ Future<void> syncOnce(SyncEngine a, SyncEngine b) async {
     await a.applyRemoteOps([for (final op in bToA) jsonDecode(jsonEncode(op.toJson()))]);
   }
 }
+
+String _hex(Uint8List b) =>
+    b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+
+Uint8List _unhex(String s) => Uint8List.fromList(
+      [for (final m in RegExp('..').allMatches(s)) int.parse(m.group(0)!, radix: 16)],
+    );

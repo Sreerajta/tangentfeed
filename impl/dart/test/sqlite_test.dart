@@ -8,6 +8,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:sqlite3/sqlite3.dart' as raw;
 import 'package:test/test.dart';
@@ -56,6 +57,19 @@ final _root = Directory.current.path.endsWith('impl/dart')
     ? '../../conformance'
     : 'impl/dart/../../conformance';
 
+final _testKeys = (jsonDecode(File('$_root/test-keys.json').readAsStringSync())
+    as Map<String, dynamic>)['keys'] as Map<String, dynamic>;
+
+Uint8List _unhex(String s) => Uint8List.fromList(
+      [for (final m in RegExp('..').allMatches(s)) int.parse(m.group(0)!, radix: 16)],
+    );
+
+void learnTestKeys(SyncEngine engine) {
+  _testKeys.forEach((id, k) {
+    engine.learnKey(id, _unhex((k as Map<String, dynamic>)['publicKey'] as String));
+  });
+}
+
 void main() {
   group('milestone 4 — SQLite storage (section 8)', () {
     late SqliteAdapter adapter;
@@ -76,10 +90,10 @@ void main() {
 
       test('${vector['name']} converges on SQLite', () async {
         final engine = await SyncEngine.open(
-          deviceId: '1234567890abcdef',
           storage: adapter,
           physicalClock: () => 0x018f6e2bffff,
         );
+        learnTestKeys(engine);
         await engine.applyRemoteOps((vector['ops'] as List).cast<Object?>());
         expect(await engine.dump(), equals(vector['expectedState']));
         expect(await engine.frontier(), equals(vector['expectedFrontier']));
@@ -87,10 +101,10 @@ void main() {
 
       test('${vector['name']} converges on SQLite, reversed and duplicated', () async {
         final engine = await SyncEngine.open(
-          deviceId: '1234567890abcdef',
           storage: adapter,
           physicalClock: () => 0x018f6e2bffff,
         );
+        learnTestKeys(engine);
         final ops = (vector['ops'] as List).cast<Object?>();
         await engine.applyRemoteOps([...ops.reversed, ...ops]);
         expect(await engine.dump(), equals(vector['expectedState']));
@@ -100,10 +114,10 @@ void main() {
 
     test('values survive a round trip through SQL, null included', () async {
       final engine = await SyncEngine.open(
-        deviceId: '1234567890abcdef',
         storage: adapter,
         physicalClock: () => 0x018f6e2bffff,
       );
+      learnTestKeys(engine);
       final id = await engine.insert('things', {
         'text': 'hello',
         'number': 42,
@@ -126,20 +140,20 @@ void main() {
       final driver = Sqlite3Driver.memory();
       final first = await SqliteAdapter.open(driver);
       final engine = await SyncEngine.open(
-        deviceId: '1234567890abcdef',
         storage: first,
         physicalClock: () => 0x018f6e2bffff,
       );
+      learnTestKeys(engine);
       final id = await engine.insert('tasks', {'title': 'persisted'});
       final frontierBefore = await engine.frontier();
 
       // Same underlying database, a new adapter and engine on top.
       final second = await SqliteAdapter.open(driver);
       final reopened = await SyncEngine.open(
-        deviceId: '1234567890abcdef',
         storage: second,
         physicalClock: () => 0x018f6e2bffff,
       );
+      learnTestKeys(engine);
 
       expect((await reopened.get('tasks', id))!['title'], equals('persisted'));
       expect(await reopened.frontier(), equals(frontierBefore));
@@ -149,10 +163,10 @@ void main() {
       final driver = _FailingDriver(raw.sqlite3.openInMemory());
       final failing = await SqliteAdapter.open(driver);
       final engine = await SyncEngine.open(
-        deviceId: '1234567890abcdef',
         storage: failing,
         physicalClock: () => 0x018f6e2bffff,
       );
+      learnTestKeys(engine);
 
       driver.failOnCells = true;
       await expectLater(

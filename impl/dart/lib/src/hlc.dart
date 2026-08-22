@@ -25,8 +25,8 @@ class ClockDriftError implements Exception {
       'ahead (max allowed ${maxDriftMs}ms); check system time';
 }
 
-final RegExp _deviceIdPattern = RegExp(r'^[0-9a-f]{16}$');
-final RegExp _hlcPattern = RegExp(r'^([0-9a-f]{12})-([0-9a-f]{4})-([0-9a-f]{16})$');
+final RegExp _deviceIdPattern = RegExp(r'^[0-9a-f]{32}$');
+final RegExp _hlcPattern = RegExp(r'^([0-9a-f]{12})-([0-9a-f]{4})-([0-9a-f]{32})$');
 
 bool isValidDeviceId(String id) => _deviceIdPattern.hasMatch(id);
 
@@ -38,7 +38,7 @@ class Hlc implements Comparable<Hlc> {
   final int counter;
   final String deviceId;
 
-  /// Section 4.2. Fixed width 34: 12 + 1 + 4 + 1 + 16.
+  /// Section 4.2. Fixed width 50: 12 + 1 + 4 + 1 + 32.
   String encode() {
     final m = millis.toRadixString(16).padLeft(12, '0');
     final c = counter.toRadixString(16).padLeft(4, '0');

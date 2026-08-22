@@ -22,12 +22,13 @@ class Peer {
   final LoopbackTransport transport;
   final Replicator replicator;
 
-  static Future<Peer> create(String deviceId) async {
+  static Future<Peer> create([String? _unused]) async {
     final engine = await SyncEngine.open(
-      deviceId: deviceId,
       storage: MemoryAdapter(),
     );
-    final transport = LoopbackTransport(deviceId);
+    // The transport must carry the engine's derived identity, not a made-up
+    // one: `from` on every message is what a peer verifies against.
+    final transport = LoopbackTransport(engine.deviceId);
     final replicator = Replicator(
       engine: engine,
       transport: transport,
@@ -158,12 +159,11 @@ void main() {
       final errors = <Object>[];
 
       Future<({SyncEngine engine, LoopbackTransport transport, Replicator replicator})>
-          make(String deviceId, String space) async {
+          make(String space) async {
         final engine = await SyncEngine.open(
-          deviceId: deviceId,
           storage: MemoryAdapter(),
         );
-        final transport = LoopbackTransport(deviceId);
+        final transport = LoopbackTransport(engine.deviceId);
         final replicator = Replicator(
           engine: engine,
           transport: transport,
@@ -173,8 +173,8 @@ void main() {
         return (engine: engine, transport: transport, replicator: replicator);
       }
 
-      final a = await make('aaaaaaaaaaaaaaaa', 'test-space');
-      final b = await make('bbbbbbbbbbbbbbbb', 'a-different-space');
+      final a = await make('test-space');
+      final b = await make('a-different-space');
 
       LoopbackTransport.connect(a.transport, b.transport);
       await a.replicator.start();

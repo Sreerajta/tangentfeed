@@ -7,6 +7,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:test/test.dart';
 import 'package:tangentfeed/tangentfeed.dart';
@@ -24,6 +25,21 @@ List<String> _files(String dir) =>
         .where((f) => f.path.endsWith('.json'))
         .map((f) => f.path.split('/').last)
         .toList();
+
+/// The vectors are signed, and an op from an unknown device is rejected
+/// (section 12), so a harness performs the same key exchange a real peer does.
+final _testKeys = (jsonDecode(File('$_root/test-keys.json').readAsStringSync())
+    as Map<String, dynamic>)['keys'] as Map<String, dynamic>;
+
+Uint8List _unhex(String s) => Uint8List.fromList(
+      [for (final m in RegExp('..').allMatches(s)) int.parse(m.group(0)!, radix: 16)],
+    );
+
+void learnTestKeys(SyncEngine engine) {
+  _testKeys.forEach((id, k) {
+    engine.learnKey(id, _unhex((k as Map<String, dynamic>)['publicKey'] as String));
+  });
+}
 
 void main() {
   group('milestone 1 — HLC (section 4)', () {
@@ -84,7 +100,7 @@ void main() {
       test('receive: ${c['description']}', () {
         final clock = clockAt(c['state'] as Map<String, dynamic>, c['pt'] as int);
         final r = c['remote'] as Map<String, dynamic>;
-        final remote = Hlc(r['millis'] as int, r['counter'] as int, 'ffffffffffffffff');
+        final remote = Hlc(r['millis'] as int, r['counter'] as int, 'f' * 32);
 
         if (c['expectedError'] == 'CLOCK_DRIFT') {
           expect(() => clock.receive(remote), throwsA(isA<ClockDriftError>()));
@@ -126,11 +142,14 @@ void main() {
   group('milestone 3 — merge (sections 3, 5)', () {
     // A fixed clock near the vectors' era, so the drift check in section 4.5
     // is deterministic rather than depending on when the suite runs.
-    Future<SyncEngine> freshEngine() => SyncEngine.open(
-          deviceId: '1234567890abcdef',
-          storage: MemoryAdapter(),
-          physicalClock: () => 0x018f6e2bffff,
-        );
+    Future<SyncEngine> freshEngine() async {
+      final e = await SyncEngine.open(
+        storage: MemoryAdapter(),
+        physicalClock: () => 0x018f6e2bffff,
+      );
+      learnTestKeys(e);
+      return e;
+    }
 
     for (final file in _files('merge')) {
       final vector = _load('merge/$file');
@@ -175,10 +194,10 @@ void main() {
 
       Future<SyncEngine> engineWith(String device, List<Object?> ops) async {
         final engine = await SyncEngine.open(
-          deviceId: device,
           storage: MemoryAdapter(),
           physicalClock: () => 0x018f6e2bffff,
         );
+        learnTestKeys(engine);
         await engine.applyRemoteOps(ops);
         return engine;
       }
