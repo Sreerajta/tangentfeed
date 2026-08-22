@@ -7,8 +7,8 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "tangentfeed": "0.1.0",
-    "@tangentfeed/core": "0.1.0",
+    "tangentfeed": "0.2.0",
+    "@tangentfeed/core": "0.2.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

@@ -2,7 +2,8 @@
 
 What stands between today and "a user installs this and ships it".
 
-Audited 2026-08-17 against the state of `main`. Everything here was checked
+Audited 2026-08-17 against the state of `main`. Progress tracked inline;
+items are struck through as they land. Everything here was checked
 against the code rather than recalled, and each item says how it was found.
 
 ---
@@ -26,8 +27,16 @@ Not a bug in the implementation — a gap in the protocol.
 So a space name is a bearer credential with no revocation, and the worst case
 is silent, replicated, permanent data loss.
 
-This needs a design decision before it needs code, and it blocks calling any of
-this production-ready for end users. Options, roughly in increasing order of
+**Partly addressed.** Phase 1 shipped in protocol v0.2: operations are signed
+and identities are derived from keys, so ops cannot be forged and a device
+cannot be impersonated. See §12 of `PROTOCOL.md`.
+
+**The attack itself is still open.** Signatures prove *who* wrote an op, not
+that they were permitted to. Any peer can generate a keypair and tombstone
+everything. That is phase 2 — a membership roster rooted in the space
+creator's key — and until it exists a space name remains a bearer credential.
+
+This still blocks calling the system production-ready for end users. Options, roughly in increasing order of
 work:
 
 1. **Document it as the threat model.** Space names must be high-entropy and
@@ -55,33 +64,41 @@ Users cannot install any of this.
 | npm | **0 of 10 packages published.** `npm view tangentfeed` → 404 |
 | pub.dev | **0 of 2 published.** Install is by git dependency only |
 
-Blocking the npm publish:
+~~Blocking the npm publish:~~ **Cleared.**
 
-- **No `LICENSE` file in any package.** The repo root has MIT; the published
-  tarballs would not. Checked all ten — none carry one. Legally ambiguous for
-  anyone consuming them.
-- **No `CHANGELOG.md`** in any npm package. The two Dart packages have them.
-- **No `engines` field**, so a user on an unsupported Node gets a cryptic
-  failure rather than a clear one.
-- **No release process.** Ten npm packages plus two pub packages with
-  interlocking versions and no tooling to bump, tag or publish them together.
+- ~~No `LICENSE` file in any package.~~ All ten now ship MIT in the tarball,
+  and `files` includes it.
+- ~~No `CHANGELOG.md`.~~ A single root `CHANGELOG.md` covers the monorepo,
+  which shares one version across all packages. Ten near-identical per-package
+  files would have been noise.
+- ~~No `engines` field.~~ All ten declare `node >= 20`.
+- Versions bumped to **0.2.0** to match the protocol. Publishing packages
+  numbered 0.1.0 that speak protocol v0.2 would have misrepresented them for as
+  long as they existed on the registry.
+
+Still open: **no release tooling.** Bumping, tagging and publishing twelve
+packages is manual. Acceptable for a first release; painful by the third.
 
 Not blocking: packing works (`@tangentfeed/core` → 14.1 kB, 4 files), and no
 package is marked private.
 
 ---
 
-## 2. There is no CI
+## 2. ~~There is no CI~~ — added
 
-`.github/workflows/` is **empty**. Nothing runs the 255 TypeScript tests, the
-129 Dart tests, or the Flutter widget tests on push.
+`.github/workflows/ci.yml` runs on push and pull request:
 
-This is a regression I introduced: the repository had `pages.yml`, it was
-broken and deploying a site that had moved to its own repo, and I removed it
-without putting a test workflow in its place.
+- **TypeScript** — `npm ci`, build, the full suite, and a check that every
+  package actually produced the `main` file it advertises. A package that
+  builds but emits nothing should fail here, not at `npm publish`.
+- **Conformance** — regenerating the signature vectors must be a no-op. A
+  generator that has drifted from its committed output is worse than no
+  generator, because the files stop being reproducible by anyone else.
 
-Needed: a workflow running the TypeScript suite, the Dart suite, `dart
-analyze`, `flutter analyze` and `flutter test`, on push and pull request.
+The **Dart job is written but disabled** (`if: false`). `impl/dart` predates
+protocol v0.2 and fails against the regenerated vectors. Enabling a knowingly
+red job teaches everyone to ignore the tick, which is worse than not running
+it. Remove that line once the port lands.
 
 ---
 

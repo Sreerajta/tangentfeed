@@ -1,6 +1,6 @@
 {
   "name": "@tangentfeed/transport-webrtc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
@@ -8,10 +8,10 @@
     "build": "tsup src/index.ts --format esm --dts --clean --external node-datachannel"
   },
   "dependencies": {
-    "@tangentfeed/core": "0.1.0"
+    "@tangentfeed/core": "0.2.0"
   },
   "devDependencies": {
-    "@tangentfeed/signaling-server": "0.1.0",
+    "@tangentfeed/signaling-server": "0.2.0",
     "@types/node": "^20.0.0",
     "node-datachannel": "^0.26.0",
     "typescript": "^5.5.0",
@@ -34,6 +34,10 @@
   },
   "files": [
     "dist",
-    "README.md"
-  ]
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
 }

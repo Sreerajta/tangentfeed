@@ -1,6 +1,6 @@
 {
   "name": "@tangentfeed/adapter-idb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsup src/index.ts --format esm --dts --clean"
   },
   "dependencies": {
-    "@tangentfeed/core": "0.1.0"
+    "@tangentfeed/core": "0.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -34,6 +34,10 @@
   },
   "files": [
     "dist",
-    "README.md"
-  ]
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
 }

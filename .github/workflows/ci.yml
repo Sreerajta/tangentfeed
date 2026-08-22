@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typescript:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` rather than `npm install`: the lockfile is committed, and a
+      # green run against different dependency versions than a release would
+      # ship is worth nothing.
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      # The build outputs are what actually get published, so a package that
+      # builds but produces nothing is a failure worth catching here rather
+      # than at `npm publish`.
+      - name: Verify every package produced output
+        run: |
+          missing=0
+          for pkg in packages/*/; do
+            name=$(node -p "require('./$pkg/package.json').name")
+            main=$(node -p "require('./$pkg/package.json').main ?? ''")
+            [ -z "$main" ] && continue
+            if [ ! -s "$pkg/$main" ]; then
+              echo "::error::$name declares main=$main but it is missing or empty"
+              missing=1
+            fi
+          done
+          exit $missing
+
+  conformance:
+    name: Conformance vectors are reproducible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The vectors are generated, and a generator that has drifted from its
+      # output is worse than no generator: the committed files stop being
+      # reproducible by anyone else. Regenerating must be a no-op.
+      - name: Signature vectors match their generator
+        run: |
+          node conformance/signatures/generate.mjs > /tmp/regenerated.json
+          if ! diff -q conformance/signatures/01-op-signatures.json /tmp/regenerated.json; then
+            echo "::error::conformance/signatures/01-op-signatures.json is not what generate.mjs produces"
+            diff conformance/signatures/01-op-signatures.json /tmp/regenerated.json | head -20
+            exit 1
+          fi
+
+      - name: Every vector file is valid JSON
+        run: |
+          for f in $(find conformance -name '*.json'); do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" \
+              || { echo "::error::$f is not valid JSON"; exit 1; }
+          done
+
+  dart:
+    name: Dart
+    runs-on: ubuntu-latest
+    # The Dart implementation has not been ported to protocol v0.2 yet: it
+    # predates signed operations and the 128-bit deviceId, so it fails against
+    # the regenerated vectors. Enabling this job before the port would train
+    # everyone to ignore a red tick, which is worse than not running it.
+    #
+    # Remove this line once impl/dart passes.
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install
+        working-directory: impl/dart
+        run: dart pub get
+      - name: Analyze
+        working-directory: impl/dart
+        run: dart analyze --fatal-infos
+      - name: Test
+        working-directory: impl/dart
+        run: dart test
