@@ -1,0 +1,311 @@
+{
+  "name": "compaction",
+  "description": "Compaction outcomes (§9). Unlike merge, these depend on a whole replica's history: the horizon is derived from recorded peer frontiers, so each vector carries the log AND those frontiers. `stateUnchanged` is the invariant that matters most — compaction reclaims storage and must never alter what a reader sees.",
+  "vectors": [
+    {
+      "name": "superseded-values-reclaimed",
+      "description": "Three writes to one cell; only the last is the winner. With every peer's frontier past all three, the two losers are droppable. Materialized state must be identical before and after — that is the invariant that makes compaction safe at all.",
+      "ops": [
+        {
+          "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "first",
+          "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "4Ay7OYxh634rA/P86VyjPPFrcFno/v7I04sRjRNb0Kr/s9axyIVW6/FiI1QRubWNs7olnEJjDk4JZjaprrIrAQ=="
+        },
+        {
+          "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "second",
+          "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "vN+Ss5iBlPorbSbLJWfUFgY049Hk8BYOAoKn8JgEdoCuZrAPHBENkHMNt8ZgoaILxEwfuA6hmuHh6NTATbcPCw=="
+        },
+        {
+          "id": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "third",
+          "hlc": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "V6kqLsgSQ+J8MqupFyJ9gunITz307IruTvbUNVvRhi9ve6vvpreryLf+wPxxbG8Nu0mie06ExOsWDllmYOfSAQ=="
+        }
+      ],
+      "peerFrontiers": {
+        "aea35cde9fb4a91ef9b7876dbc2dac1b": {
+          "29de64fc1545395ccd0586fefbda3a82": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82"
+        }
+      },
+      "options": {
+        "includeTombstones": false
+      },
+      "expected": {
+        "removed": 2,
+        "rowsReclaimed": 0,
+        "blockedBy": [],
+        "opCountAfter": 1,
+        "stateUnchanged": true
+      }
+    },
+    {
+      "name": "lagging-peer-blocks-reclamation",
+      "description": "Same log, but a peer has only acknowledged the first op, so the horizon stops there. The first op is itself superseded AND below the horizon, so it goes; the second cannot, because a peer that has not yet seen the winner would be left with neither. One lagging peer is the difference between reclaiming two ops and reclaiming one. The peer is named in blockedBy, so a caller can see why reclamation stalled instead of watching the log grow with no explanation.",
+      "ops": [
+        {
+          "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "first",
+          "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "4Ay7OYxh634rA/P86VyjPPFrcFno/v7I04sRjRNb0Kr/s9axyIVW6/FiI1QRubWNs7olnEJjDk4JZjaprrIrAQ=="
+        },
+        {
+          "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "second",
+          "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "vN+Ss5iBlPorbSbLJWfUFgY049Hk8BYOAoKn8JgEdoCuZrAPHBENkHMNt8ZgoaILxEwfuA6hmuHh6NTATbcPCw=="
+        },
+        {
+          "id": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "third",
+          "hlc": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "V6kqLsgSQ+J8MqupFyJ9gunITz307IruTvbUNVvRhi9ve6vvpreryLf+wPxxbG8Nu0mie06ExOsWDllmYOfSAQ=="
+        }
+      ],
+      "peerFrontiers": {
+        "aea35cde9fb4a91ef9b7876dbc2dac1b": {
+          "29de64fc1545395ccd0586fefbda3a82": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82"
+        }
+      },
+      "options": {
+        "includeTombstones": false
+      },
+      "expected": {
+        "removed": 1,
+        "rowsReclaimed": 0,
+        "blockedBy": [
+          "aea35cde9fb4a91ef9b7876dbc2dac1b"
+        ],
+        "opCountAfter": 2,
+        "stateUnchanged": true
+      }
+    },
+    {
+      "name": "tombstones-survive-by-default",
+      "description": "A deleted row is not reclaimed unless asked. §9 makes this opt-in because a peer offline beyond the horizon can no longer learn the row was deleted, and would resurrect it.",
+      "ops": [
+        {
+          "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "doomed",
+          "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "xTPFmZaXFXesWBh6TMYN+djfbb86TzyVbbnM0lQTRppITDVAOFjylVJ1XmSz1ecn/0LcANq68mzjgd8yOAO/Cw=="
+        },
+        {
+          "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "-",
+          "value": true,
+          "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "uguQdSlGsrbTBTPIwKlGdOU/5+hhf/E6/RtKoltX7XGpcQdQiaIGGhH0PvXpFgl95nTZP4YSGlrh00fklQrDDA=="
+        },
+        {
+          "id": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FBB",
+          "column": "title",
+          "value": "survivor",
+          "hlc": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "Y/wgnIfZiYLOlVqOtPwpBLsDBONI4KP/bCmtWhCzOBSgOzQLiBTUcNlwKutXujZu6dp+XXA87C5j1xLKsAmhBw=="
+        }
+      ],
+      "peerFrontiers": {
+        "aea35cde9fb4a91ef9b7876dbc2dac1b": {
+          "29de64fc1545395ccd0586fefbda3a82": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82"
+        }
+      },
+      "options": {
+        "includeTombstones": false
+      },
+      "expected": {
+        "removed": 0,
+        "rowsReclaimed": 0,
+        "blockedBy": [],
+        "opCountAfter": 3,
+        "stateUnchanged": true
+      }
+    },
+    {
+      "name": "tombstone-gc-reclaims-the-whole-row",
+      "description": "With includeTombstones, a tombstoned row below the horizon is removed entirely: the tombstone AND every cell op of that row, together. Dropping the tombstone while leaving the row's other cells would resurrect the row on the very next read, which is the failure this rule exists to prevent. The surviving row is untouched.",
+      "ops": [
+        {
+          "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "doomed",
+          "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "xTPFmZaXFXesWBh6TMYN+djfbb86TzyVbbnM0lQTRppITDVAOFjylVJ1XmSz1ecn/0LcANq68mzjgd8yOAO/Cw=="
+        },
+        {
+          "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "-",
+          "value": true,
+          "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "uguQdSlGsrbTBTPIwKlGdOU/5+hhf/E6/RtKoltX7XGpcQdQiaIGGhH0PvXpFgl95nTZP4YSGlrh00fklQrDDA=="
+        },
+        {
+          "id": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FBB",
+          "column": "title",
+          "value": "survivor",
+          "hlc": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "Y/wgnIfZiYLOlVqOtPwpBLsDBONI4KP/bCmtWhCzOBSgOzQLiBTUcNlwKutXujZu6dp+XXA87C5j1xLKsAmhBw=="
+        }
+      ],
+      "peerFrontiers": {
+        "aea35cde9fb4a91ef9b7876dbc2dac1b": {
+          "29de64fc1545395ccd0586fefbda3a82": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82"
+        }
+      },
+      "options": {
+        "includeTombstones": true
+      },
+      "expected": {
+        "removed": 2,
+        "rowsReclaimed": 1,
+        "blockedBy": [],
+        "opCountAfter": 1,
+        "stateUnchanged": true
+      }
+    },
+    {
+      "name": "no-recorded-peers-means-alone",
+      "description": "A replica that has never completed a sync has no peer frontiers, so the horizon is its own. Correct for a genuinely single-device user, and a further reason tombstone GC is opt-in: the horizon is only as good as the frontiers actually recorded.",
+      "ops": [
+        {
+          "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "first",
+          "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "4Ay7OYxh634rA/P86VyjPPFrcFno/v7I04sRjRNb0Kr/s9axyIVW6/FiI1QRubWNs7olnEJjDk4JZjaprrIrAQ=="
+        },
+        {
+          "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "second",
+          "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "vN+Ss5iBlPorbSbLJWfUFgY049Hk8BYOAoKn8JgEdoCuZrAPHBENkHMNt8ZgoaILxEwfuA6hmuHh6NTATbcPCw=="
+        },
+        {
+          "id": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "third",
+          "hlc": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "V6kqLsgSQ+J8MqupFyJ9gunITz307IruTvbUNVvRhi9ve6vvpreryLf+wPxxbG8Nu0mie06ExOsWDllmYOfSAQ=="
+        }
+      ],
+      "peerFrontiers": {},
+      "options": {
+        "includeTombstones": false
+      },
+      "expected": {
+        "removed": 2,
+        "rowsReclaimed": 0,
+        "blockedBy": [],
+        "opCountAfter": 1,
+        "stateUnchanged": true
+      }
+    },
+    {
+      "name": "dry-run-reports-without-removing",
+      "description": "The same numbers as the first vector, but the log is untouched afterwards.",
+      "ops": [
+        {
+          "id": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "first",
+          "hlc": "018bcfe56800-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "4Ay7OYxh634rA/P86VyjPPFrcFno/v7I04sRjRNb0Kr/s9axyIVW6/FiI1QRubWNs7olnEJjDk4JZjaprrIrAQ=="
+        },
+        {
+          "id": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "second",
+          "hlc": "018bcfe56801-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "vN+Ss5iBlPorbSbLJWfUFgY049Hk8BYOAoKn8JgEdoCuZrAPHBENkHMNt8ZgoaILxEwfuA6hmuHh6NTATbcPCw=="
+        },
+        {
+          "id": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "table": "tasks",
+          "row": "01HZX3NDEKTSV4RRFFQ69G5FAA",
+          "column": "title",
+          "value": "third",
+          "hlc": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82",
+          "device": "29de64fc1545395ccd0586fefbda3a82",
+          "sig": "V6kqLsgSQ+J8MqupFyJ9gunITz307IruTvbUNVvRhi9ve6vvpreryLf+wPxxbG8Nu0mie06ExOsWDllmYOfSAQ=="
+        }
+      ],
+      "peerFrontiers": {
+        "aea35cde9fb4a91ef9b7876dbc2dac1b": {
+          "29de64fc1545395ccd0586fefbda3a82": "018bcfe56802-0000-29de64fc1545395ccd0586fefbda3a82"
+        }
+      },
+      "options": {
+        "includeTombstones": false,
+        "dryRun": true
+      },
+      "expected": {
+        "removed": 2,
+        "rowsReclaimed": 0,
+        "blockedBy": [],
+        "opCountAfter": 3,
+        "stateUnchanged": true
+      }
+    }
+  ]
+}

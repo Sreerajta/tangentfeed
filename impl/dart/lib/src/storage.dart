@@ -93,6 +93,14 @@ abstract class StorageAdapter {
 
   /// Every op in the log, ascending by hlc.
   Future<List<Op>> allOps();
+
+  /// Frontiers other peers have told us about, which is where the compaction
+  /// horizon comes from. Section 9.
+  Future<Map<String, Frontier>> getPeerFrontiers();
+  Future<void> setPeerFrontier(String peer, Frontier frontier);
+
+  /// Drops ops and materialized cells together. Section 9.
+  Future<void> compact(List<String> opIds, List<CellKey> cellKeys);
 }
 
 /// Reference in-memory adapter.
@@ -105,6 +113,7 @@ class MemoryAdapter implements StorageAdapter {
   Frontier _frontier = {};
   Hlc? _clock;
   DeviceKey? _deviceKey;
+  final Map<String, Frontier> _peerFrontiers = {};
 
   @override
   Future<Map<String, Op>?> getRow(String table, String row) async {
@@ -170,6 +179,24 @@ class MemoryAdapter implements StorageAdapter {
     _winners.addAll(batch.winners);
     _frontier = Map.of(batch.frontier);
     if (batch.clock != null) _clock = batch.clock;
+  }
+
+  @override
+  Future<Map<String, Frontier>> getPeerFrontiers() async =>
+      {for (final e in _peerFrontiers.entries) e.key: Frontier.of(e.value)};
+
+  @override
+  Future<void> setPeerFrontier(String peer, Frontier frontier) async =>
+      _peerFrontiers[peer] = Frontier.of(frontier);
+
+  @override
+  Future<void> compact(List<String> opIds, List<CellKey> cellKeys) async {
+    for (final id in opIds) {
+      _log.remove(id);
+    }
+    for (final key in cellKeys) {
+      _winners.remove(key);
+    }
   }
 
   @override

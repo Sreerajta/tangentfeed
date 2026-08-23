@@ -589,9 +589,11 @@ through. As of v0.1 the suite covers:
 | `hlc/` | String encoding, ordering, send and receive rules, counter overflow, drift rejection | §4 |
 | `canonical/` | RFC 8785 canonicalization, including the cases that differ across languages | §8.1 |
 | `session/` | A recorded two-party session transcript | §6 |
+| `compaction/` | Horizon from peer frontiers, reclamation, tombstone GC, dry run | §9 |
 
-Not yet covered, and stated plainly so nobody goes looking: compaction
-outcomes (§9), which depend on peer frontiers rather than on ops alone.
+Every normative rule now has vectors. Compaction was the last gap; its vectors
+carry a replica's recorded peer frontiers alongside the log, because the
+horizon derives from those rather than from the ops alone.
 
 New implementations should start with `/conformance/IMPLEMENTING.md`, which
 sequences the work and lists the traps.

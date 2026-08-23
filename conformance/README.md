@@ -19,6 +19,7 @@ verify at each step, and lists the traps.
 | `merge/` | Cell-level LWW, tiebreaks, tombstones, null and unknown, encrypted values | §3, §5, §10 |
 | `session/` | Frontier exchange and diff between two peers | §6 |
 | `signatures/` | Ed25519 op signatures, domain separation, and the tampering cases that must be rejected | §12 |
+| `compaction/` | Horizon from peer frontiers, superseded reclamation, tombstone GC, dry run | §9 |
 
 `merge/` has its own stricter contract — the ordering matrix below. The other
 directories are straightforward case lists whose shape is documented in each
@@ -107,10 +108,11 @@ They are public by construction and must never be used for real data.
 
 ## Not yet covered
 
-- **Compaction outcomes (§9).** These depend on recorded peer frontiers rather
-  than on ops alone, so a vector has to describe a whole replica's history
-  rather than a batch. Contributions welcome. Until then: a replica that never
-  compacts is correct, only larger, so this does not block interoperability.
+Nothing in the protocol is now without vectors.
+
+Compaction (§9) was the last gap. Its vectors carry a whole replica's history —
+the log *and* the recorded peer frontiers — because the horizon is derived from
+the latter, unlike merge which depends only on a batch of ops.
 
 Clock drift (§4.5) and the sync session (§6) were listed here and are now
 covered by `hlc/02-send-receive.json` and `session/`. The drift vectors carry

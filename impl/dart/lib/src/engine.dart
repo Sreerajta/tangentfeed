@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'hlc.dart';
+import 'compaction.dart';
 import 'op.dart';
 import 'signing.dart';
 import 'storage.dart';
@@ -307,6 +308,60 @@ class SyncEngine {
     _mutex = result.then<void>((_) {}, onError: (_) {});
     return result;
   }
+
+  // ---------- compaction (section 9) ----------
+
+  /// Records what a peer has told us it holds, which is what the horizon is
+  /// computed from. Called by the replicator on `since` and `ack`.
+  Future<void> recordPeerFrontier(String peer, Frontier frontier) =>
+      _storage.setPeerFrontier(peer, frontier);
+
+  /// Reclaims superseded ops, and optionally whole tombstoned rows.
+  ///
+  /// Never changes what a reader sees: it drops ops that can no longer affect
+  /// materialization, and nothing else. That invariant is what the conformance
+  /// vectors assert hardest.
+  Future<CompactionStats> compact([CompactionOptions? options]) =>
+      _locked(() async {
+        final opts = options ?? const CompactionOptions();
+        final ops = await _storage.allOps();
+        final own = await _storage.getFrontier();
+        final peers = await _storage.getPeerFrontiers();
+
+        final winners = <String, Op>{};
+        for (final table in await _storage.listTables()) {
+          for (final row in await _storage.listRows(table)) {
+            final cells = await _storage.getRow(table, row);
+            if (cells == null) continue;
+            cells.forEach((column, op) => winners['$table $row $column'] = op);
+          }
+        }
+
+        final plan = planCompaction(
+          ops,
+          winners,
+          compactionHorizon(own, peers),
+          opts,
+        );
+
+        if (!opts.dryRun && plan.opIds.isNotEmpty) {
+          await _storage.compact(
+            plan.opIds,
+            [for (final c in plan.cellKeys) CellKey(c.table, c.row, c.column)],
+          );
+        }
+
+        return CompactionStats(
+          scanned: plan.stats.scanned,
+          removed: plan.stats.removed,
+          rowsReclaimed: plan.stats.rowsReclaimed,
+          retainedWinners: plan.stats.retainedWinners,
+          retainedAboveHorizon: plan.stats.retainedAboveHorizon,
+          blockedBy: blockingPeers(own, peers),
+        );
+      });
+
+  Future<int> opCount() => _storage.opCount();
 
   // ---------- subscriptions ----------
 

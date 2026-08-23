@@ -135,6 +135,9 @@ class Replicator {
       case 'since':
         final have = (message['have'] as Map?)?.cast<String, String>() ?? {};
         _peerFrontiers[peer] = have;
+        // Persisted, because the compaction horizon is only as good as the
+        // frontiers actually recorded. Section 9.
+        await engine.recordPeerFrontier(peer, have);
         await _sendOpsSince(peer, have);
 
       case 'ops':
@@ -150,7 +153,10 @@ class Replicator {
 
       case 'ack':
         final frontier = (message['frontier'] as Map?)?.cast<String, String>();
-        if (frontier != null) _peerFrontiers[peer] = frontier;
+        if (frontier != null) {
+          _peerFrontiers[peer] = frontier;
+          await engine.recordPeerFrontier(peer, frontier);
+        }
 
       default:
         // Unknown message types are ignored rather than fatal, so a newer

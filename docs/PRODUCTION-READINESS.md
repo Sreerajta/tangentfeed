@@ -109,8 +109,8 @@ the Dart CI job is enabled.
 
 | Gap | Where | Consequence |
 |---|---|---|
-| Compaction has no conformance vectors | protocol + both implementations | The subtlest logic in the system is unverified across implementations |
-| Compaction not implemented in Dart | `impl/dart` | Dart replicas grow without bound |
+| ~~Compaction has no conformance vectors~~ | — | **Closed.** `conformance/compaction/`, six vectors, run by both implementations |
+| ~~Compaction not implemented in Dart~~ | — | **Closed.** Ported; the same vectors pass in both |
 | Crash-atomicity untested on sqflite | `impl/flutter` | The §8.2 guarantee is proven for `package:sqlite3` only; a phone dying mid-write is exactly when it matters |
 | No typed schema layer in Dart | `impl/dart` | Feature parity gap, not a correctness risk |
 | Widget bindings untested | `impl/flutter` | Written, analyse clean, never run |

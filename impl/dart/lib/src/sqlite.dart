@@ -260,6 +260,44 @@ class SqliteAdapter implements StorageAdapter {
       });
 
   @override
+  Future<Map<String, Frontier>> getPeerFrontiers() async {
+    final rows = await _db.query("SELECT value FROM meta WHERE key = 'peers'");
+    if (rows.isEmpty) return {};
+    final raw = jsonDecode(rows.first['value']! as String) as Map<String, Object?>;
+    return {
+      for (final e in raw.entries)
+        e.key: (e.value! as Map).cast<String, String>(),
+    };
+  }
+
+  @override
+  Future<void> setPeerFrontier(String peer, Frontier frontier) async {
+    final current = await getPeerFrontiers();
+    current[peer] = frontier;
+    await _db.execute(
+      "INSERT INTO meta (key, value) VALUES ('peers', ?) "
+      'ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      [jsonEncode(current)],
+    );
+  }
+
+  @override
+  Future<void> compact(List<String> opIds, List<CellKey> cellKeys) =>
+      // One transaction: dropping ops without their cells, or the reverse,
+      // leaves the replica disagreeing with itself. Section 8.2 again.
+      _db.transaction((txn) async {
+        for (final id in opIds) {
+          await txn.execute('DELETE FROM ops WHERE id = ?', [id]);
+        }
+        for (final c in cellKeys) {
+          await txn.execute(
+            'DELETE FROM cells WHERE table_name = ? AND row_id = ? AND column_name = ?',
+            [c.table, c.row, c.column],
+          );
+        }
+      });
+
+  @override
   Future<int> opCount() async {
     final rows = await _db.query('SELECT COUNT(*) AS n FROM ops');
     return (rows.first['n']! as num).toInt();

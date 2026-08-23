@@ -6,6 +6,8 @@
 library;
 
 export 'src/canonical.dart' show canonicalJson;
+export 'src/compaction.dart'
+    show CompactionOptions, CompactionStats, blockingPeers, compactionHorizon;
 export 'src/cipher.dart' show DecryptError, SpaceCipher, cipherPrefix, isEncryptedValue;
 export 'src/engine.dart'
     show ChangeEvent, RowChange, RowData, SyncEngine;
