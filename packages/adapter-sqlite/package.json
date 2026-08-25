@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
+    "prepack": "npm run build",
     "test": "vitest run"
   },
   "dependencies": {

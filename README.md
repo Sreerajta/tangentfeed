@@ -201,9 +201,32 @@ examples.
 
 ## Status
 
-v0.1. The protocol is stable enough to build on and the conformance vectors pin
-down its behaviour, but it is pre-1.0: expect refinement before the format is
-frozen. See [ROADMAP.md](./ROADMAP.md) for what shipped and when.
+v0.2, pre-1.0. The conformance vectors pin down the protocol's behaviour and
+two independent implementations pass them, but the wire format is not frozen —
+v0.2 already broke compatibility with v0.1. See [ROADMAP.md](./ROADMAP.md) for
+what shipped and when.
+
+### Read this before you rely on it
+
+**Anyone who learns a space name can delete everything in that space.**
+
+Operations are signed (§12), so they cannot be forged and a device cannot be
+impersonated. But signatures prove *who* wrote an op, not that they were
+*allowed* to: there is no membership model yet, so any peer that reaches your
+signaling server and knows the space name can join it.
+
+Encryption does not close this. Row tombstones are deliberately plaintext
+(§7.2) so that keyless relays can order deletes correctly, which means a peer
+with no key still cannot read your data but *can* tombstone every row it sees.
+
+Until membership lands, treat a space name as a secret credential: make it
+high-entropy, do not put it in a URL or a public build, and keep your signaling
+server private. The relay itself has no authentication, no rate limiting and no
+payload cap, so it is not safe to expose to the open internet as it stands.
+
+Cross-network sync is also unproven: every test so far had both peers on one
+local network, and connecting through NAT generally needs a TURN relay. See
+[docs/TURN.md](./docs/TURN.md).
 
 Planned, currently out of scope: store-and-forward mailboxes for peers that
 are never online simultaneously, React Native adapters, a Rust core with FFI

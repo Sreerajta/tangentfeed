@@ -5,7 +5,8 @@
   "main": "./dist/index.js",
   "scripts": {
     "test": "vitest run",
-    "build": "tsup src/index.ts --format esm --dts --clean"
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@tangentfeed/core": "0.2.0",
@@ -18,7 +19,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sreerajta/tangentfeed.git",
+    "url": "git+https://github.com/sreerajta/tangentfeed.git",
     "directory": "packages/schema"
   },
   "types": "./dist/index.d.ts",

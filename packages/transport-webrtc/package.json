@@ -5,7 +5,8 @@
   "main": "./dist/index.js",
   "scripts": {
     "test": "vitest run",
-    "build": "tsup src/index.ts --format esm --dts --clean --external node-datachannel"
+    "build": "tsup src/index.ts --format esm --dts --clean --external node-datachannel",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@tangentfeed/core": "0.2.0"
@@ -22,7 +23,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sreerajta/tangentfeed.git",
+    "url": "git+https://github.com/sreerajta/tangentfeed.git",
     "directory": "packages/transport-webrtc"
   },
   "types": "./dist/index.d.ts",
