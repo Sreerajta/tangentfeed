@@ -15,5 +15,9 @@
   },
   "dependencies": {
     "better-sqlite3": "^13.0.2"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.62.4",
+    "@rollup/rollup-linux-arm64-gnu": "4.62.4"
   }
 }
