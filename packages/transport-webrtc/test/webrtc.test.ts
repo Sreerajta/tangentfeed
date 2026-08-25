@@ -145,10 +145,16 @@ describe("WebRTC transport end-to-end", () => {
       t2.close();
     });
 
-    await until(async () => {
-      const row = await a.engine.get("tasks", id);
+    // Wait for BOTH replicas. Waiting only on `a` and then asserting on `b`
+    // is a race: it passes whenever b happens to be quick, and fails on a
+    // slower machine — which is exactly how it failed in CI while passing
+    // locally three times in a row.
+    const converged = async (e: typeof a.engine) => {
+      const row = await e.get("tasks", id);
       return row?.["title"] === "Buy oat milk" && row?.["done"] === true;
-    });
+    };
+    await until(async () => (await converged(a.engine)) && (await converged(b.engine)));
+
     expect(await b.engine.get("tasks", id)).toEqual({
       id,
       title: "Buy oat milk",
