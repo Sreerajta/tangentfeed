@@ -1,6 +1,6 @@
 {
   "name": "tangentfeed",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Offline-first, peer-to-peer data sync. Any storage, any transport, any language.",
   "license": "MIT",
   "type": "module",
