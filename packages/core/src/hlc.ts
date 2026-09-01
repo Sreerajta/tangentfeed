@@ -3,7 +3,7 @@
  *
  * State: (millis, counter, deviceId).
  * String form: 12-hex millis + "-" + 4-hex counter + "-" + 32-hex deviceId,
- * fixed 34 chars, lexicographic order === logical order.
+ * fixed 50 chars, lexicographic order === logical order.
  */
 
 export const MAX_COUNTER = 0xffff;

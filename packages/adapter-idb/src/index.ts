@@ -2,7 +2,7 @@
  * IndexedDB adapter — PROTOCOL.md §8 capabilities on browser storage.
  *
  * Layout (one database per space, name `tangentfeed:{space}`):
- *   ops   — keyPath "id". Since op.id === op.hlc (34-char sortable string),
+ *   ops   — keyPath "id". Since op.id === op.hlc (50-char sortable string),
  *           primary-key order IS global HLC order for free.
  *   cells — key: cellKey(table,row,column) = "table\0row\0column".
  *           value: { key, op } where op is the current winning op.

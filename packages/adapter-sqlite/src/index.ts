@@ -4,7 +4,7 @@
  * Schema (three tables, mirroring the IndexedDB layout):
  *
  *   ops   (id PK, table_name, row_id, column_name, value, hlc, device)
- *         The operation log. `id` is the 34-char HLC string, so PRIMARY KEY
+ *         The operation log. `id` is the 50-char HLC string, so PRIMARY KEY
  *         order IS causal order — the same trick the IndexedDB adapter uses,
  *         and the reason opsSince() can stream in order with no sort.
  *         Index on (device, hlc) makes frontier-diff queries index-only,
